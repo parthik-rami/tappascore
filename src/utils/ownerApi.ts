@@ -1,3 +1,5 @@
+import { buildApiUrl } from '../config/api';
+
 function getOwnerToken(): string | null {
   try {
     const saved = localStorage.getItem('tappascore_owner_user');
@@ -11,7 +13,7 @@ function getOwnerToken(): string | null {
 
 export async function loginOwnerApi(credentials: { email: string; password: string }): Promise<{ success: boolean; message: string; data?: any }> {
   try {
-    const res = await fetch('/api/owner/login', {
+    const res = await fetch(buildApiUrl('/api/owner/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
@@ -33,7 +35,7 @@ export async function logoutOwnerApi(): Promise<void> {
   const token = getOwnerToken();
   if (token) {
     try {
-      await fetch('/api/owner/logout', {
+      await fetch(buildApiUrl('/api/owner/logout'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -46,7 +48,7 @@ export async function fetchOwnerDashboard(): Promise<any> {
   const token = getOwnerToken();
   if (!token) throw new Error('Owner unauthorized.');
 
-  const res = await fetch('/api/owner/dashboard', {
+  const res = await fetch(buildApiUrl('/api/owner/dashboard'), {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -62,7 +64,7 @@ export async function fetchOwnerUsers(query: string = ''): Promise<any[]> {
   const token = getOwnerToken();
   if (!token) throw new Error('Owner unauthorized.');
 
-  const res = await fetch(`/api/owner/users?query=${encodeURIComponent(query)}`, {
+  const res = await fetch(buildApiUrl(`/api/owner/users?query=${encodeURIComponent(query)}`), {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -78,7 +80,7 @@ export async function fetchOwnerUserDetail(userId: string): Promise<any> {
   const token = getOwnerToken();
   if (!token) throw new Error('Owner unauthorized.');
 
-  const res = await fetch(`/api/owner/users/${userId}`, {
+  const res = await fetch(buildApiUrl(`/api/owner/users/${userId}`), {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -94,7 +96,7 @@ export async function deactivateUserApi(userId: string): Promise<{ success: bool
   const token = getOwnerToken();
   if (!token) return { success: false, message: 'Owner unauthorized.' };
 
-  const res = await fetch(`/api/owner/users/${userId}/deactivate`, {
+  const res = await fetch(buildApiUrl(`/api/owner/users/${userId}/deactivate`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -111,7 +113,7 @@ export async function reactivateUserApi(userId: string): Promise<{ success: bool
   const token = getOwnerToken();
   if (!token) return { success: false, message: 'Owner unauthorized.' };
 
-  const res = await fetch(`/api/owner/users/${userId}/reactivate`, {
+  const res = await fetch(buildApiUrl(`/api/owner/users/${userId}/reactivate`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -128,7 +130,7 @@ export async function fetchOwnerReviews(): Promise<any[]> {
   const token = getOwnerToken();
   if (!token) throw new Error('Owner unauthorized.');
 
-  const res = await fetch('/api/owner/reviews', {
+  const res = await fetch(buildApiUrl('/api/owner/reviews'), {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -144,7 +146,7 @@ export async function hideReviewApi(reviewId: string): Promise<{ success: boolea
   const token = getOwnerToken();
   if (!token) return { success: false, message: 'Owner unauthorized.' };
 
-  const res = await fetch(`/api/owner/reviews/${reviewId}/hide`, {
+  const res = await fetch(buildApiUrl(`/api/owner/reviews/${reviewId}/hide`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -157,7 +159,7 @@ export async function unhideReviewApi(reviewId: string): Promise<{ success: bool
   const token = getOwnerToken();
   if (!token) return { success: false, message: 'Owner unauthorized.' };
 
-  const res = await fetch(`/api/owner/reviews/${reviewId}/unhide`, {
+  const res = await fetch(buildApiUrl(`/api/owner/reviews/${reviewId}/unhide`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -170,7 +172,7 @@ export async function deleteReviewApi(reviewId: string): Promise<{ success: bool
   const token = getOwnerToken();
   if (!token) return { success: false, message: 'Owner unauthorized.' };
 
-  const res = await fetch(`/api/owner/reviews/${reviewId}`, {
+  const res = await fetch(buildApiUrl(`/api/owner/reviews/${reviewId}`), {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -183,7 +185,7 @@ export async function fetchOwnerActivityLogs(): Promise<any[]> {
   const token = getOwnerToken();
   if (!token) throw new Error('Owner unauthorized.');
 
-  const res = await fetch('/api/owner/activity', {
+  const res = await fetch(buildApiUrl('/api/owner/activity'), {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -206,7 +208,7 @@ export async function updateOwnerAccountApi(payload: {
   if (!token) return { success: false, message: 'Owner unauthorized.' };
 
   try {
-    const res = await fetch('/api/owner/account', {
+    const res = await fetch(buildApiUrl('/api/owner/account'), {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

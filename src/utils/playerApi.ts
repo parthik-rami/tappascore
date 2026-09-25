@@ -1,3 +1,5 @@
+import { buildApiUrl } from '../config/api';
+
 export interface PlayerCareerSummary {
   matches: number;
   batting: {
@@ -86,7 +88,7 @@ export async function fetchPlayerStats(playerId: string): Promise<PlayerStatsDat
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`/api/players/${encodeURIComponent(playerId)}/stats`, { headers });
+  const res = await fetch(buildApiUrl(`/api/players/${encodeURIComponent(playerId)}/stats`), { headers });
   const data = await res.json();
 
   if (!res.ok) {
@@ -118,7 +120,7 @@ export async function searchPlayersList(query: string = ''): Promise<Array<{ id:
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`/api/players?query=${encodeURIComponent(query)}`, { headers });
+  const res = await fetch(buildApiUrl(`/api/players?query=${encodeURIComponent(query)}`), { headers });
   const data = await res.json();
 
   if (!res.ok || !data.success) {
@@ -134,7 +136,7 @@ export async function updateStatsPrivacy(statsVisibility: 'public' | 'private'):
     return { success: false, message: 'Must be logged in to update privacy settings.' };
   }
 
-  const res = await fetch('/api/players/privacy', {
+  const res = await fetch(buildApiUrl('/api/players/privacy'), {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',

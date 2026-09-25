@@ -6,6 +6,7 @@ import { RefreshCw, Share2, ArrowLeft, Trophy, ShieldCheck, Radio } from 'lucide
 import { calculateBattingStats, calculateBowlingStats } from '../utils/statistics';
 import { io, Socket } from 'socket.io-client';
 import { ShareMatchModal } from '../components/ShareMatchModal';
+import { buildApiUrl, SOCKET_URL } from '../config/api';
 
 interface PublicLiveMatchProps {
   numericMatchId: string;
@@ -23,7 +24,7 @@ export const PublicLiveMatch: React.FC<PublicLiveMatchProps> = ({ numericMatchId
   const fetchLiveScore = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/matches/public/${numericMatchId}`);
+      const res = await fetch(buildApiUrl(`/api/matches/public/${numericMatchId}`));
       const data = await res.json();
 
       if (!res.ok || !data.success) {
@@ -46,7 +47,7 @@ export const PublicLiveMatch: React.FC<PublicLiveMatchProps> = ({ numericMatchId
     // Setup Socket.IO real-time connection
     let socket: Socket | null = null;
     try {
-      socket = io();
+      socket = SOCKET_URL ? io(SOCKET_URL) : io();
 
       socket.on('connect', () => {
         setIsLiveConnected(true);

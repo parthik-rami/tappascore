@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, CheckCheck, Trash2, X, Trophy, UserCheck, MessageSquare, Info } from 'lucide-react';
 import { io } from 'socket.io-client';
+import { SOCKET_URL } from '../config/api';
 import {
   NotificationItem,
   fetchNotificationsApi,
@@ -51,7 +52,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ user }) => {
   useEffect(() => {
     if (!user || !user.id) return;
 
-    const socket = io(window.location.origin, {
+    const socketUrl = SOCKET_URL || window.location.origin;
+    const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
     });
 

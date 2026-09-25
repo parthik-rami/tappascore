@@ -1,3 +1,5 @@
+import { buildApiUrl } from '../config/api';
+
 export interface NotificationItem {
   id: string;
   recipientUserId: string;
@@ -31,7 +33,7 @@ export async function fetchNotificationsApi(): Promise<NotificationItem[]> {
   const token = getUserToken();
   if (!token) return [];
 
-  const res = await fetch('/api/notifications', {
+  const res = await fetch(buildApiUrl('/api/notifications'), {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -45,7 +47,7 @@ export async function fetchUnreadCountApi(): Promise<number> {
   const token = getUserToken();
   if (!token) return 0;
 
-  const res = await fetch('/api/notifications/unread-count', {
+  const res = await fetch(buildApiUrl('/api/notifications/unread-count'), {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -59,7 +61,7 @@ export async function markNotificationAsReadApi(notificationId: string): Promise
   const token = getUserToken();
   if (!token) return false;
 
-  const res = await fetch(`/api/notifications/${notificationId}/read`, {
+  const res = await fetch(buildApiUrl(`/api/notifications/${notificationId}/read`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -71,7 +73,7 @@ export async function markAllNotificationsAsReadApi(): Promise<boolean> {
   const token = getUserToken();
   if (!token) return false;
 
-  const res = await fetch('/api/notifications/read-all', {
+  const res = await fetch(buildApiUrl('/api/notifications/read-all'), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -83,7 +85,7 @@ export async function deleteNotificationApi(notificationId: string): Promise<boo
   const token = getUserToken();
   if (!token) return false;
 
-  const res = await fetch(`/api/notifications/${notificationId}`, {
+  const res = await fetch(buildApiUrl(`/api/notifications/${notificationId}`), {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -96,7 +98,7 @@ export async function fetchNotificationPreferencesApi(): Promise<NotificationPre
   const defaultPrefs = { matchLifecycle: true, playerStats: true, reviewAccount: true };
   if (!token) return defaultPrefs;
 
-  const res = await fetch('/api/notifications/preferences', {
+  const res = await fetch(buildApiUrl('/api/notifications/preferences'), {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -111,7 +113,7 @@ export async function updateNotificationPreferencesApi(prefs: Partial<Notificati
   const defaultPrefs = { matchLifecycle: true, playerStats: true, reviewAccount: true };
   if (!token) return defaultPrefs;
 
-  const res = await fetch('/api/notifications/preferences', {
+  const res = await fetch(buildApiUrl('/api/notifications/preferences'), {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',

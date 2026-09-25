@@ -1,4 +1,5 @@
 import { Match, MatchSettings } from '../types/cricket';
+import { buildApiUrl } from '../config/api';
 
 const CURRENT_MATCH_KEY = 'cricketscore_current_match';
 const MATCHES_HISTORY_KEY = 'cricketscore_matches_history';
@@ -48,7 +49,7 @@ async function syncMatchToMongo(match: Match): Promise<void> {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    await fetch('/api/matches/sync', {
+    await fetch(buildApiUrl('/api/matches/sync'), {
       method: 'POST',
       headers,
       body: JSON.stringify({ match }),
@@ -66,7 +67,7 @@ async function deleteMatchFromMongo(matchId: string): Promise<void> {
   if (!token) return;
 
   try {
-    await fetch(`/api/matches/${matchId}`, {
+    await fetch(buildApiUrl(`/api/matches/${matchId}`), {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -86,7 +87,7 @@ export async function migrateLocalHistoryToMongo(token?: string): Promise<Match[
 
   if (authToken && localHistory.length > 0) {
     try {
-      await fetch('/api/matches/bulk-sync', {
+      await fetch(buildApiUrl('/api/matches/bulk-sync'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +103,7 @@ export async function migrateLocalHistoryToMongo(token?: string): Promise<Match[
   // Fetch latest user matches from MongoDB
   if (authToken) {
     try {
-      const response = await fetch('/api/matches', {
+      const response = await fetch(buildApiUrl('/api/matches'), {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
