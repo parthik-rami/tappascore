@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: #080c10;
+    color: #f1f5f9;
+    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Stadium Floodlight Ambient Background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 20%;
+    width: 60%;
+    height: 380px;
+    background: radial-gradient(circle, rgba(0, 255, 135, 0.05) 0%, rgba(16, 185, 129, 0.02) 40%, transparent 75%);
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+/* Glassmorphic Stadium Surface */
+.glass-panel {
+  background: rgba(17, 25, 35, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-panel-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(22, 32, 44, 0.85);
+  border-color: rgba(0, 255, 135, 0.25);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px -3px rgba(0, 255, 135, 0.1);
+}
+
+/* Glowing Neon Text and Borders */
+.glow-text-neon {
+  color: #00ff87;
+  text-shadow: 0 0 12px rgba(0, 255, 135, 0.4);
+}
+
+.glow-border-neon {
+  border-color: #00ff87;
+  box-shadow: 0 0 15px rgba(0, 255, 135, 0.3);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0c1219;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #233243;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #34d399;
+}
