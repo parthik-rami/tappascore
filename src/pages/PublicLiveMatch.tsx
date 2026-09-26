@@ -61,18 +61,55 @@ export const PublicLiveMatch: React.FC<PublicLiveMatchProps> = ({ numericMatchId
       });
 
       socket.on('match_updated', (updatedMatch: Match) => {
-        setMatch(updatedMatch);
+        setMatch((prevMatch) => {
+          if (JSON.stringify(prevMatch) === JSON.stringify(updatedMatch)) {
+            return prevMatch;
+          }
+          return updatedMatch;
+        });
         setLastRefreshed(new Date());
       });
     } catch (e) {
       console.warn('Socket connection error:', e);
     }
 
+    // Silent fallback polling mechanism (every 3 seconds)
+    // Runs only if match is not completed
+    const pollInterval = setInterval(async () => {
+      // Check if current match state is already completed before fetching
+      setMatch((prevMatch) => {
+        if (prevMatch?.status === 'completed') {
+          clearInterval(pollInterval);
+          return prevMatch;
+        }
+        return prevMatch;
+      });
+
+      try {
+        const res = await fetch(buildApiUrl(`/api/matches/public/${numericMatchId}`));
+        const data = await res.json();
+
+        if (res.ok && data.success && data.data) {
+          const freshMatch: Match = data.data;
+          setMatch((prevMatch) => {
+            if (JSON.stringify(prevMatch) === JSON.stringify(freshMatch)) {
+              return prevMatch;
+            }
+            setLastRefreshed(new Date());
+            return freshMatch;
+          });
+        }
+      } catch (err) {
+        // Silent error handling for background polling
+      }
+    }, 3000);
+
     return () => {
       if (socket) {
         socket.emit('leave_match', numericMatchId);
         socket.disconnect();
       }
+      clearInterval(pollInterval);
     };
   }, [numericMatchId]);
 

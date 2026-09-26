@@ -157,10 +157,24 @@ export const syncMatch = async (req, res) => {
         }
       }
 
+      // 3. Stale sync protection: Ignore incoming sync if existing match in DB has a strictly newer updatedAt timestamp
+      if (
+        match.updatedAt &&
+        existingMatch.updatedAt &&
+        new Date(existingMatch.updatedAt).getTime() > new Date(match.updatedAt).getTime()
+      ) {
+        return res.status(200).json({
+          success: true,
+          message: 'Ignored stale match update.',
+          data: existingMatch,
+        });
+      }
+
       const previousStatus = existingMatch.status;
 
       // Update fields
       if (match.numericMatchId) existingMatch.numericMatchId = match.numericMatchId;
+      if (match.updatedAt) existingMatch.updatedAt = match.updatedAt;
       existingMatch.name = match.name;
       existingMatch.teamA = match.teamA;
       existingMatch.teamB = match.teamB;
