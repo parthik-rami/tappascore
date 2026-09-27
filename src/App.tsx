@@ -70,7 +70,7 @@ export const App: React.FC = () => {
               setCurrentRoute('owner-panel');
               return;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
         if (pathname !== '/owner/login') {
           window.history.replaceState(null, '', '/owner/login');
@@ -90,7 +90,7 @@ export const App: React.FC = () => {
               setCurrentRoute('owner-panel');
               return;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
         setCurrentRoute('owner-login');
         return;
@@ -251,7 +251,7 @@ export const App: React.FC = () => {
         if (parsed && parsed.token && parsed.role === 'owner') {
           isValidOwner = true;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (!isValidOwner) {
@@ -387,7 +387,7 @@ export const App: React.FC = () => {
             <span>No More <span className="text-cricket-400 font-semibold">#જગડો</span></span>
           </div>
           <div>
-            Created by <strong className="text-slate-200 font-black tracking-wide uppercase">PARTHIK RAMI</strong>
+            Created by <strong className="text-slate-200 font-black tracking-wide uppercase">PARTHIK RAMI AND RAJ SONI</strong>
           </div>
         </div>
       </footer>
