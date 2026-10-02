@@ -162,8 +162,16 @@ export const App: React.FC = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('tappascore_auth_user');
+    try {
+      const userId = authenticatedUser?.id || 'guest';
+      localStorage.removeItem('tappascore_auth_user');
+      localStorage.removeItem(`tappascore:selectedPlayer:${userId}`);
+      localStorage.removeItem('tappascore_selected_player_id');
+    } catch (e) {}
+
     setAuthenticatedUser(null);
+    setSelectedPlayer(null);
+    setShowPlayerSelect(false);
     setCurrentRoute('dashboard');
     showToast('Logged out successfully.', 'info');
   };
@@ -324,6 +332,7 @@ export const App: React.FC = () => {
         user={authenticatedUser}
         selectedPlayer={selectedPlayer}
         onOpenSelectPlayer={() => setShowPlayerSelect(true)}
+        onLogout={handleLogout}
       />
 
       {/* PWA Installation Prompt */}
