@@ -10,21 +10,21 @@
   "background_color": "#0B0B0B",
   "icons": [
     {
-      "src": "/pwa-192x192.svg",
+      "src": "/icons/tappascore-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/pwa-512x512.svg",
+      "src": "/icons/tappascore-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/maskable-icon-512x512.svg",
+      "src": "/icons/tappascore-maskable.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ]

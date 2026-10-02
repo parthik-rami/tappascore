@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.svg', 'pwa-192x192.svg', 'pwa-512x512.svg', 'maskable-icon-512x512.svg'],
+      includeAssets: ['icons/favicon.png', 'icons/tappascore-apple-touch.png', 'icons/tappascore-192.png', 'icons/tappascore-512.png', 'icons/tappascore-maskable.png'],
       manifest: {
         name: 'TappaScore',
         short_name: 'TappaScore',
@@ -20,21 +20,21 @@ export default defineConfig({
         background_color: '#0B0B0B',
         icons: [
           {
-            src: '/pwa-192x192.svg',
+            src: '/icons/tappascore-192.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/pwa-512x512.svg',
+            src: '/icons/tappascore-512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/maskable-icon-512x512.svg',
+            src: '/icons/tappascore-maskable.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'maskable',
           },
         ],

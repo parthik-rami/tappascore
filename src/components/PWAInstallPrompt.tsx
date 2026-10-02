@@ -88,9 +88,11 @@ export const PWAInstallPrompt: React.FC = () => {
       <div className="fixed bottom-20 sm:bottom-6 left-4 right-4 md:left-auto md:right-6 md:w-96 z-40 bg-[#151515] border border-[#00E676]/40 p-4 shadow-2xl animate-fadeIn text-[#F5F5F0]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#0B0B0B] border border-[#00E676] flex items-center justify-center shrink-0">
-              <span className="font-black text-sm text-[#00E676]">T</span>
-            </div>
+            <img
+              src="/icons/tappascore-192.png"
+              alt="TappaScore Icon"
+              className="w-10 h-10 rounded-sm border border-[#00E676]/40 object-cover shrink-0"
+            />
             <div>
               <h4 className="text-xs font-black uppercase text-white tracking-wider">Install TappaScore</h4>
               <p className="text-[11px] font-mono text-[#8A8A8A]">Fast ground scoring & live stats app.</p>
