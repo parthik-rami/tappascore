@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Trophy,
   PlusCircle,
   History,
   Settings,
   Radio,
-  Menu,
-  X,
-  ShieldCheck,
   Flame,
+  User
 } from 'lucide-react';
 import { Match } from '../types/cricket';
 import { NotificationBell } from './NotificationBell';
@@ -21,58 +19,43 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, activeMatch, user }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Trophy },
     { id: 'create-match', label: 'New Match', icon: PlusCircle },
     ...(activeMatch && activeMatch.status === 'live'
       ? [{ id: 'live-scoring', label: 'Live Scoring', icon: Radio, highlight: true }]
       : []),
-    { id: 'match-history', label: 'Match History', icon: History },
-    { id: 'player-stats', label: 'Player Stats', icon: Flame },
+    { id: 'match-history', label: 'Archive', icon: History },
+    { id: 'player-stats', label: 'Stats', icon: Flame },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  const handleNav = (routeId: string) => {
-    onNavigate(routeId);
-    setMobileMenuOpen(false);
-  };
-
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-800/80 bg-stadium-950/90 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Brand Logo */}
-          <div
-            onClick={() => handleNav('dashboard')}
-            className="flex items-center gap-3 cursor-pointer group select-none"
-          >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cricket-600 via-cricket-500 to-cricket-neon flex items-center justify-center shadow-neon group-hover:scale-105 transition-transform duration-200">
-              <div className="relative">
-                <span className="text-black font-black text-lg tracking-tighter">TS</span>
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-black"></span>
+    <>
+      {/* DESKTOP & TABLET TOP HEADER */}
+      <header className="sticky top-0 z-40 w-full bg-[#0B0B0B] border-b border-[#171717]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Brand Logo */}
+            <div
+              onClick={() => onNavigate('dashboard')}
+              className="flex items-center gap-3 cursor-pointer select-none"
+            >
+              <div className="w-8 h-8 rounded-sm bg-[#171717] border border-[#292929] flex items-center justify-center font-mono font-black text-xs text-white">
+                TS
               </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xl font-black tracking-tight text-white group-hover:text-cricket-neon transition-colors">
-                  Tappa<span className="text-cricket-neon">Score</span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-black tracking-tight text-[#F5F5F0] uppercase font-mono">
+                  TAPPA<span className="text-[#00E676]">SCORE</span>
                 </span>
-                <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-cricket-500/10 text-cricket-400 border border-cricket-500/20">
-                  <ShieldCheck className="w-3 h-3" /> VERIFIED
+                <span className="hidden sm:inline-block text-[9px] font-mono uppercase font-bold text-[#00E676] bg-[#00E676]/10 px-2 py-0.5 border border-[#00E676]/20 rounded-sm">
+                  PRO ATHLETE
                 </span>
               </div>
-              <p className="text-[11px] font-medium text-slate-400 tracking-wide">
-                No More <span className="text-cricket-400 font-semibold">#જગડો</span>
-              </p>
             </div>
-          </div>
 
-          {/* Right Section: Desktop Nav + Bell */}
-          <div className="flex items-center gap-3">
-            {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-1">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-1 font-mono text-xs">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentRoute === item.id;
@@ -81,77 +64,58 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, active
                 return (
                   <button
                     key={item.id}
-                    onClick={() => handleNav(item.id)}
-                    className={`relative flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${
+                    onClick={() => onNavigate(item.id)}
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm font-bold uppercase transition-colors cursor-pointer ${
                       isActive
-                        ? 'bg-cricket-500/15 text-cricket-neon border border-cricket-500/30 shadow-neon'
+                        ? 'bg-[#171717] text-[#00E676] border-b-2 border-[#00E676]'
                         : isHighlight
-                        ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20'
-                        : 'text-slate-300 hover:text-white hover:bg-stadium-800/60'
+                        ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        : 'text-[#8A8A8A] hover:text-[#F5F5F0] hover:bg-[#111111]'
                     }`}
                   >
-                    {isHighlight && (
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                      </span>
-                    )}
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-3.5 h-3.5" />
                     <span>{item.label}</span>
                   </button>
                 );
               })}
             </nav>
 
-            {/* In-App Notification Bell */}
-            {user && <NotificationBell user={user} />}
-
-            {/* Mobile Menu Button */}
-            <div className="flex md:hidden items-center gap-2">
-              {activeMatch && activeMatch.status === 'live' && currentRoute !== 'live-scoring' && (
-                <button
-                  onClick={() => handleNav('live-scoring')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold animate-pulse"
-                >
-                  <Radio className="w-3.5 h-3.5" />
-                  <span>Live Match</span>
-                </button>
-              )}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 rounded-lg bg-stadium-850 text-slate-300 hover:text-white border border-slate-800"
-                aria-label="Toggle menu"
+            {/* Right User & Notification Controls */}
+            <div className="flex items-center gap-3 font-mono text-xs">
+              {user && <NotificationBell user={user} />}
+              <div
+                onClick={() => onNavigate('player-stats')}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-[#111111] border border-[#292929] cursor-pointer hover:bg-[#171717] transition-colors"
               >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
+                <User className="w-3.5 h-3.5 text-[#00E676]" />
+                <span className="font-bold text-[#F5F5F0] text-xs truncate max-w-[100px]">
+                  {user?.name || 'ATHLETE'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Mobile Menu Dropdown */}
-      {mobileMenuOpen && (
-        <div className="md:hidden glass-panel border-b border-slate-800 bg-stadium-950/98 px-4 pt-2 pb-4 space-y-1 animate-fadeIn">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentRoute === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNav(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-base font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-cricket-500/20 text-cricket-neon border border-cricket-500/30'
-                    : 'text-slate-300 hover:bg-stadium-800 hover:text-white'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </header>
+      {/* MOBILE BOTTOM NAVIGATION BAR */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0B0B0B] border-t border-[#171717] px-2 py-2 flex items-center justify-around font-mono">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentRoute === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onNavigate(item.id)}
+              className={`flex flex-col items-center gap-1 px-3 py-1 rounded-sm text-[10px] font-bold uppercase transition-colors cursor-pointer ${
+                isActive ? 'text-[#00E676]' : 'text-[#8A8A8A]'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 };

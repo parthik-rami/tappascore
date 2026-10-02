@@ -2,13 +2,9 @@ import React, { useState } from 'react';
 import { Match, MatchType, Player } from '../types/cricket';
 import { EditPlayerModal } from '../components/EditPlayerModal';
 import {
-  Trophy,
-  Plus,
   Trash2,
   Play,
-  Sparkles,
-  Coins,
-  Edit3,
+  Edit3
 } from 'lucide-react';
 
 interface CreateMatchProps {
@@ -150,179 +146,161 @@ export const CreateMatch: React.FC<CreateMatchProps> = ({ onStartMatch, onCancel
     const teamAId = 'team-a-' + Date.now();
     const teamBId = 'team-b-' + Date.now();
 
-    const teamA = {
-      id: teamAId,
-      name: teamAName.trim(),
-      shortName: teamAName.trim().substring(0, 3).toUpperCase(),
-      players: teamAPlayers,
-    };
+    const tossWinnerTeamId = tossWinner === 'A' ? teamAId : teamBId;
 
-    const teamB = {
-      id: teamBId,
-      name: teamBName.trim(),
-      shortName: teamBName.trim().substring(0, 3).toUpperCase(),
-      players: teamBPlayers,
-    };
-
-    // Determine who bats first from toss
-    const tossWinnerId = tossWinner === 'A' ? teamAId : teamBId;
     let battingTeamId = teamAId;
     let bowlingTeamId = teamBId;
 
     if (tossWinner === 'A') {
-      battingTeamId = tossDecision === 'bat' ? teamAId : teamBId;
-      bowlingTeamId = tossDecision === 'bat' ? teamBId : teamAId;
+      if (tossDecision === 'bat') {
+        battingTeamId = teamAId;
+        bowlingTeamId = teamBId;
+      } else {
+        battingTeamId = teamBId;
+        bowlingTeamId = teamAId;
+      }
     } else {
-      battingTeamId = tossDecision === 'bat' ? teamBId : teamAId;
-      bowlingTeamId = tossDecision === 'bat' ? teamAId : teamBId;
+      if (tossDecision === 'bat') {
+        battingTeamId = teamBId;
+        bowlingTeamId = teamAId;
+      } else {
+        battingTeamId = teamAId;
+        bowlingTeamId = teamAId;
+      }
     }
 
-    const battingTeamPlayers = battingTeamId === teamAId ? teamA.players : teamB.players;
-    const bowlingTeamPlayers = bowlingTeamId === teamAId ? teamA.players : teamB.players;
+    const battingTeamPlayers = battingTeamId === teamAId ? teamAPlayers : teamBPlayers;
+    const bowlingTeamPlayers = bowlingTeamId === teamAId ? teamAPlayers : teamBPlayers;
 
-    // Generate 8-digit numeric Match ID (10000000..99999999)
-    const numericMatchId = Math.floor(10000000 + Math.random() * 90000000).toString();
+    const now = new Date().toISOString();
 
-    // Get current logged-in user ID for captain/owner assignment
-    let currentUserId: string | undefined = undefined;
-    try {
-      const savedUser = localStorage.getItem('tappascore_auth_user');
-      if (savedUser) {
-        currentUserId = JSON.parse(savedUser)?.id;
-      }
-    } catch (e) {}
-
-    const initialMatch: Match = {
+    const newMatch: Match = {
       id: 'match-' + Date.now(),
-      numericMatchId,
-      ownerId: currentUserId,
       name: matchName.trim(),
-      matchType,
       overs: effectiveOvers,
-      teamA,
-      teamB,
-      tossWinnerTeamId: tossWinnerId,
-      tossDecision,
+      matchType,
+      teamA: {
+        id: teamAId,
+        name: teamAName.trim(),
+        shortName: teamAName.trim().substring(0, 3).toUpperCase(),
+        players: teamAPlayers,
+      },
+      teamB: {
+        id: teamBId,
+        name: teamBName.trim(),
+        shortName: teamBName.trim().substring(0, 3).toUpperCase(),
+        players: teamBPlayers,
+      },
       currentInningsIndex: 0,
       status: 'live',
+      tossWinnerTeamId,
+      tossDecision,
       innings: [
         {
           id: 'inn-1-' + Date.now(),
           inningsNumber: 1,
           battingTeamId,
           bowlingTeamId,
-          deliveries: [],
           currentStrikerId: battingTeamPlayers[0]?.id || '',
           currentNonStrikerId: battingTeamPlayers[1]?.id || '',
           currentBowlerId: bowlingTeamPlayers[0]?.id || '',
+          deliveries: [],
           isCompleted: false,
         },
       ],
-      auditLog: [
-        {
-          id: 'aud-' + Date.now(),
-          timestamp: new Date().toLocaleTimeString(),
-          action: 'match_started',
-          description: `Match started: ${teamA.name} vs ${teamB.name} (${effectiveOvers} Overs)`,
-          details: `${tossWinner === 'A' ? teamA.name : teamB.name} won toss and elected to ${tossDecision}.`,
-        },
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      auditLog: [],
+      createdAt: now,
+      updatedAt: now,
     };
 
-    onStartMatch(initialMatch);
+    onStartMatch(newMatch);
   };
 
+  const effectiveOvers = matchType === 'Custom' ? parseInt(customOvers, 10) || 0 : overs;
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn pb-12">
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-24 text-[#F5F5F0]">
       {/* Header */}
-      <div className="glass-panel p-6 rounded-2xl border border-slate-800 bg-stadium-900/90">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-cricket-500/20 text-cricket-neon flex items-center justify-center border border-cricket-500/40">
-            <Trophy className="w-5 h-5" />
+      <div className="border-b border-[#292929] pb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#00E676] mb-1">
+            <span>Match Setup Experience</span>
           </div>
-          <div>
-            <h1 className="text-2xl font-black text-white">Create New Cricket Match</h1>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Set team names, overs, players and toss to initiate reliable scoring.
-            </p>
-          </div>
+          <h1 className="text-3xl font-black tracking-tight text-white uppercase">New Match</h1>
+          <p className="text-xs text-[#8A8A8A] mt-1">Configure team rosters, overs format, toss, and launch official scoring.</p>
         </div>
+
+        <button
+          onClick={onCancel}
+          className="text-xs font-mono tracking-wider uppercase text-[#8A8A8A] hover:text-white transition-colors"
+        >
+          [ Cancel Setup ]
+        </button>
       </div>
 
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-sm font-semibold flex items-center gap-2">
-          <span>⚠️ {errorMessage}</span>
+        <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono rounded-lg">
+          ⚠️ ERROR: {errorMessage}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Match Name & Overs Settings */}
-        <div className="glass-panel p-6 rounded-2xl border border-slate-800 bg-stadium-900/80 space-y-5">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2 border-b border-slate-800 pb-2">
-            <Sparkles className="w-4 h-4 text-cricket-neon" />
-            <span>Match Details & Overs</span>
-          </h2>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* SECTION 1: MATCH DETAILS */}
+        <div className="bg-[#111111] border border-[#292929] rounded-none p-6 space-y-6">
+          <div className="flex items-center justify-between border-b border-[#292929] pb-4">
+            <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+              <span className="w-2 h-2 bg-[#00E676] inline-block" />
+              1. Match Details
+            </h2>
+            <span className="text-[10px] font-mono text-[#5F5F5F]">CONFIG // FORMAT & OVERS</span>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">
-                Match Title / Ground Name
-              </label>
+              <label className="block text-[11px] font-mono uppercase text-[#8A8A8A] mb-2">Match Title / Tournament</label>
               <input
                 type="text"
-                required
                 value={matchName}
                 onChange={(e) => setMatchName(e.target.value)}
-                placeholder="e.g. Sunday League Final, Turf Cup"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-stadium-850 border border-slate-700 text-white font-semibold text-sm focus:border-cricket-500 focus:outline-none"
+                placeholder="e.g. Sunday League Final"
+                className="w-full bg-[#171717] border border-[#292929] px-4 py-3 text-sm text-white focus:border-[#00E676] focus:outline-none font-mono"
               />
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">
-                Overs Format
-              </label>
-              <div className="grid grid-cols-5 gap-1.5">
+              <label className="block text-[11px] font-mono uppercase text-[#8A8A8A] mb-2">Match Format & Overs</label>
+              <div className="grid grid-cols-4 gap-2">
                 {[
-                  { label: '5 Ov', val: 5, type: 'Custom' as MatchType },
+                  { label: 'T5', val: 5, type: 'T5' as MatchType },
                   { label: 'T10', val: 10, type: 'T10' as MatchType },
-                  { label: 'T15', val: 15, type: 'T15' as MatchType },
                   { label: 'T20', val: 20, type: 'T20' as MatchType },
-                  { label: 'Custom', val: 0, type: 'Custom' as MatchType },
-                ].map((opt) => (
+                  { label: 'Custom', val: 12, type: 'Custom' as MatchType },
+                ].map((item) => (
                   <button
-                    key={opt.label}
+                    key={item.label}
                     type="button"
-                    onClick={() => {
-                      if (opt.label === 'Custom') {
-                        setMatchType('Custom');
-                      } else {
-                        handleOversPreset(opt.val, opt.type);
-                      }
-                    }}
-                    className={`py-2 rounded-xl text-xs font-black transition-all ${
-                      (matchType === opt.type && (opt.label === 'Custom' || overs === opt.val))
-                        ? 'bg-cricket-500 text-black shadow-neon'
-                        : 'bg-stadium-850 text-slate-300 border border-slate-800 hover:border-slate-700'
+                    onClick={() => handleOversPreset(item.val, item.type)}
+                    className={`py-2.5 text-xs font-mono font-bold uppercase border transition-all ${
+                      matchType === item.type
+                        ? 'bg-[#00E676] text-black border-[#00E676]'
+                        : 'bg-[#171717] text-[#8A8A8A] border-[#292929] hover:border-[#5F5F5F] hover:text-white'
                     }`}
                   >
-                    {opt.label}
+                    {item.label}
                   </button>
                 ))}
               </div>
 
               {matchType === 'Custom' && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs text-slate-400">Custom Overs:</span>
+                <div className="mt-3">
                   <input
                     type="number"
-                    min={1}
-                    max={100}
+                    min="1"
+                    max="100"
                     value={customOvers}
                     onChange={(e) => setCustomOvers(e.target.value)}
-                    className="w-20 px-2.5 py-1 rounded-lg bg-stadium-850 border border-slate-700 text-white text-xs font-bold"
+                    placeholder="Enter custom overs"
+                    className="w-full bg-[#171717] border border-[#292929] px-4 py-2 text-xs text-white focus:border-[#00E676] focus:outline-none font-mono"
                   />
                 </div>
               )}
@@ -330,241 +308,222 @@ export const CreateMatch: React.FC<CreateMatchProps> = ({ onStartMatch, onCancel
           </div>
         </div>
 
-        {/* Teams & Squads (2 Columns) */}
+        {/* SECTION 2: PLAYER SELECTION / TEAMS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Team A */}
-          <div className="glass-panel p-5 rounded-2xl border border-slate-800 bg-stadium-900/80 space-y-4">
-            <div className="border-b border-slate-800 pb-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                Team A Name
-              </label>
+          {/* TEAM A */}
+          <div className="bg-[#111111] border border-[#292929] p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-[#292929] pb-3">
+              <span className="text-[10px] font-mono uppercase text-[#00E676]">HOST SQUAD</span>
+              <span className="text-[10px] font-mono text-[#5F5F5F]">{teamAPlayers.length} PLAYERS</span>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-mono uppercase text-[#8A8A8A] mb-1.5">Team A Name</label>
               <input
                 type="text"
-                required
                 value={teamAName}
                 onChange={(e) => setTeamAName(e.target.value)}
-                placeholder="e.g. Ahmedabad Strikers"
-                className="w-full px-3.5 py-2 rounded-xl bg-stadium-850 border border-slate-700 text-white font-bold text-base focus:border-cricket-500 focus:outline-none"
+                className="w-full bg-[#171717] border border-[#292929] px-3.5 py-2.5 text-sm text-white font-bold focus:border-[#00E676] focus:outline-none"
               />
             </div>
 
-            {/* Players list */}
-            <div>
-              <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                <span className="font-bold uppercase tracking-wider">
-                  Players ({teamAPlayers.length})
-                </span>
-                <span className="text-[11px] text-slate-500">Min 2 players</span>
-              </div>
-
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                {teamAPlayers.map((p, idx) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-stadium-850 border border-slate-800/80 text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-500 font-mono w-4">{idx + 1}.</span>
-                      <span className="font-semibold text-white">{p.name}</span>
-                      {p.jerseyNumber && (
-                        <span className="text-[10px] text-slate-400">#{p.jerseyNumber}</span>
-                      )}
-                      {p.isCaptain && (
-                        <span className="px-1 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">
-                          (C)
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setEditingPlayer(p)}
-                        className="text-slate-400 hover:text-cricket-neon p-1 transition-colors"
-                        title="Edit player details"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removePlayerA(p.id)}
-                        className="text-slate-500 hover:text-red-400 p-1 transition-colors"
-                        title="Remove player"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+            {/* Player list */}
+            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+              {teamAPlayers.map((player) => (
+                <div
+                  key={player.id}
+                  className="flex items-center justify-between bg-[#171717] p-2.5 border border-[#292929] text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] text-[#00E676] bg-[#00E676]/10 px-1.5 py-0.5 border border-[#00E676]/20">
+                      #{player.jerseyNumber || '-'}
+                    </span>
+                    <span className="font-bold text-white">{player.name}</span>
+                    {player.isCaptain && (
+                      <span className="text-[9px] font-mono uppercase bg-[#292929] text-[#8A8A8A] px-1 py-0.2">CPT</span>
+                    )}
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingPlayer(player)}
+                      className="p-1 text-[#8A8A8A] hover:text-white"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removePlayerA(player.id)}
+                      className="p-1 text-[#5F5F5F] hover:text-red-400"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-              {/* Add player form */}
-              <div className="mt-3 flex gap-2">
+            {/* Add player form */}
+            <div className="pt-2 border-t border-[#292929]">
+              <div className="grid grid-cols-3 gap-2">
                 <input
                   type="text"
-                  placeholder="Player name"
+                  placeholder="Player Name"
                   value={newPlayerAName}
                   onChange={(e) => setNewPlayerAName(e.target.value)}
-                  className="flex-1 px-3 py-1.5 rounded-xl bg-stadium-850 border border-slate-700 text-xs text-white focus:border-cricket-500 focus:outline-none"
+                  className="col-span-2 bg-[#171717] border border-[#292929] px-3 py-2 text-xs text-white focus:border-[#00E676] focus:outline-none font-mono"
                 />
                 <input
                   type="text"
-                  placeholder="#No"
+                  placeholder="No."
                   value={newPlayerAJersey}
                   onChange={(e) => setNewPlayerAJersey(e.target.value)}
-                  className="w-16 px-2 py-1.5 rounded-xl bg-stadium-850 border border-slate-700 text-xs text-white focus:border-cricket-500 focus:outline-none text-center"
+                  className="bg-[#171717] border border-[#292929] px-3 py-2 text-xs text-white focus:border-[#00E676] focus:outline-none font-mono"
                 />
-                <button
-                  type="button"
-                  onClick={handleAddPlayerA}
-                  className="px-3 py-1.5 rounded-xl bg-stadium-800 text-cricket-neon border border-slate-700 text-xs font-bold hover:bg-stadium-750 flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Add
-                </button>
               </div>
+              <button
+                type="button"
+                onClick={handleAddPlayerA}
+                className="w-full mt-2 bg-[#292929] hover:bg-[#333333] text-white py-2 text-xs font-mono uppercase font-bold tracking-wider transition-colors"
+              >
+                + Add Player
+              </button>
             </div>
           </div>
 
-          {/* Team B */}
-          <div className="glass-panel p-5 rounded-2xl border border-slate-800 bg-stadium-900/80 space-y-4">
-            <div className="border-b border-slate-800 pb-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                Team B Name
-              </label>
+          {/* TEAM B */}
+          <div className="bg-[#111111] border border-[#292929] p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-[#292929] pb-3">
+              <span className="text-[10px] font-mono uppercase text-[#8A8A8A]">OPPOSITION SQUAD</span>
+              <span className="text-[10px] font-mono text-[#5F5F5F]">{teamBPlayers.length} PLAYERS</span>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-mono uppercase text-[#8A8A8A] mb-1.5">Team B Name</label>
               <input
                 type="text"
-                required
                 value={teamBName}
                 onChange={(e) => setTeamBName(e.target.value)}
-                placeholder="e.g. Gujarat Warriors"
-                className="w-full px-3.5 py-2 rounded-xl bg-stadium-850 border border-slate-700 text-white font-bold text-base focus:border-cricket-500 focus:outline-none"
+                className="w-full bg-[#171717] border border-[#292929] px-3.5 py-2.5 text-sm text-white font-bold focus:border-[#00E676] focus:outline-none"
               />
             </div>
 
-            {/* Players list */}
-            <div>
-              <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                <span className="font-bold uppercase tracking-wider">
-                  Players ({teamBPlayers.length})
-                </span>
-                <span className="text-[11px] text-slate-500">Min 2 players</span>
-              </div>
-
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                {teamBPlayers.map((p, idx) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-stadium-850 border border-slate-800/80 text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-500 font-mono w-4">{idx + 1}.</span>
-                      <span className="font-semibold text-white">{p.name}</span>
-                      {p.jerseyNumber && (
-                        <span className="text-[10px] text-slate-400">#{p.jerseyNumber}</span>
-                      )}
-                      {p.isCaptain && (
-                        <span className="px-1 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">
-                          (C)
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setEditingPlayer(p)}
-                        className="text-slate-400 hover:text-cricket-neon p-1 transition-colors"
-                        title="Edit player details"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removePlayerB(p.id)}
-                        className="text-slate-500 hover:text-red-400 p-1 transition-colors"
-                        title="Remove player"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+            {/* Player list */}
+            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+              {teamBPlayers.map((player) => (
+                <div
+                  key={player.id}
+                  className="flex items-center justify-between bg-[#171717] p-2.5 border border-[#292929] text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] text-[#8A8A8A] bg-[#292929] px-1.5 py-0.5">
+                      #{player.jerseyNumber || '-'}
+                    </span>
+                    <span className="font-bold text-white">{player.name}</span>
+                    {player.isCaptain && (
+                      <span className="text-[9px] font-mono uppercase bg-[#292929] text-[#8A8A8A] px-1 py-0.2">CPT</span>
+                    )}
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingPlayer(player)}
+                      className="p-1 text-[#8A8A8A] hover:text-white"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removePlayerB(player.id)}
+                      className="p-1 text-[#5F5F5F] hover:text-red-400"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-              {/* Add player form */}
-              <div className="mt-3 flex gap-2">
+            {/* Add player form */}
+            <div className="pt-2 border-t border-[#292929]">
+              <div className="grid grid-cols-3 gap-2">
                 <input
                   type="text"
-                  placeholder="Player name"
+                  placeholder="Player Name"
                   value={newPlayerBName}
                   onChange={(e) => setNewPlayerBName(e.target.value)}
-                  className="flex-1 px-3 py-1.5 rounded-xl bg-stadium-850 border border-slate-700 text-xs text-white focus:border-cricket-500 focus:outline-none"
+                  className="col-span-2 bg-[#171717] border border-[#292929] px-3 py-2 text-xs text-white focus:border-[#00E676] focus:outline-none font-mono"
                 />
                 <input
                   type="text"
-                  placeholder="#No"
+                  placeholder="No."
                   value={newPlayerBJersey}
                   onChange={(e) => setNewPlayerBJersey(e.target.value)}
-                  className="w-16 px-2 py-1.5 rounded-xl bg-stadium-850 border border-slate-700 text-xs text-white focus:border-cricket-500 focus:outline-none text-center"
+                  className="bg-[#171717] border border-[#292929] px-3 py-2 text-xs text-white focus:border-[#00E676] focus:outline-none font-mono"
                 />
-                <button
-                  type="button"
-                  onClick={handleAddPlayerB}
-                  className="px-3 py-1.5 rounded-xl bg-stadium-800 text-cricket-neon border border-slate-700 text-xs font-bold hover:bg-stadium-750 flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Add
-                </button>
               </div>
+              <button
+                type="button"
+                onClick={handleAddPlayerB}
+                className="w-full mt-2 bg-[#292929] hover:bg-[#333333] text-white py-2 text-xs font-mono uppercase font-bold tracking-wider transition-colors"
+              >
+                + Add Player
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Toss & Match Start Section */}
-        <div className="glass-panel p-5 rounded-2xl border border-slate-800 bg-stadium-900/80">
-          <div className="flex items-center gap-2 mb-3">
-            <Coins className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-              Toss Winner & Decision
-            </span>
+        {/* SECTION 3: TOSS DECISION */}
+        <div className="bg-[#111111] border border-[#292929] p-6 space-y-5">
+          <div className="flex items-center justify-between border-b border-[#292929] pb-3">
+            <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+              <span className="w-2 h-2 bg-[#00E676] inline-block" />
+              3. Toss Decision
+            </h2>
+            <span className="text-[10px] font-mono text-[#5F5F5F]">INITIAL INNINGS</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Toss Won By</label>
-              <div className="grid grid-cols-2 gap-2">
+              <label className="block text-[11px] font-mono uppercase text-[#8A8A8A] mb-2">Toss Winner</label>
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setTossWinner('A')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold truncate transition-all ${
+                  className={`py-3 px-4 text-xs font-bold uppercase border transition-all text-left ${
                     tossWinner === 'A'
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50'
-                      : 'bg-stadium-850 text-slate-400 border border-slate-800'
+                      ? 'bg-[#00E676] text-black border-[#00E676]'
+                      : 'bg-[#171717] text-[#8A8A8A] border-[#292929] hover:text-white'
                   }`}
                 >
-                  {teamAName || 'Team A'}
+                  <span className="block text-[9px] font-mono opacity-80">TEAM A</span>
+                  <span className="truncate block font-black text-sm">{teamAName}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setTossWinner('B')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold truncate transition-all ${
+                  className={`py-3 px-4 text-xs font-bold uppercase border transition-all text-left ${
                     tossWinner === 'B'
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50'
-                      : 'bg-stadium-850 text-slate-400 border border-slate-800'
+                      ? 'bg-[#00E676] text-black border-[#00E676]'
+                      : 'bg-[#171717] text-[#8A8A8A] border-[#292929] hover:text-white'
                   }`}
                 >
-                  {teamBName || 'Team B'}
+                  <span className="block text-[9px] font-mono opacity-80">TEAM B</span>
+                  <span className="truncate block font-black text-sm">{teamBName}</span>
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Elected To</label>
-              <div className="grid grid-cols-2 gap-2">
+              <label className="block text-[11px] font-mono uppercase text-[#8A8A8A] mb-2">Elected To</label>
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setTossDecision('bat')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                  className={`py-3 text-xs font-mono font-bold uppercase border transition-all ${
                     tossDecision === 'bat'
-                      ? 'bg-cricket-500/20 text-cricket-neon border border-cricket-500/50'
-                      : 'bg-stadium-850 text-slate-400 border border-slate-800'
+                      ? 'bg-[#00E676] text-black border-[#00E676]'
+                      : 'bg-[#171717] text-[#8A8A8A] border-[#292929] hover:text-white'
                   }`}
                 >
                   🏏 Bat First
@@ -572,34 +531,55 @@ export const CreateMatch: React.FC<CreateMatchProps> = ({ onStartMatch, onCancel
                 <button
                   type="button"
                   onClick={() => setTossDecision('bowl')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                  className={`py-3 text-xs font-mono font-bold uppercase border transition-all ${
                     tossDecision === 'bowl'
-                      ? 'bg-cricket-500/20 text-cricket-neon border border-cricket-500/50'
-                      : 'bg-stadium-850 text-slate-400 border border-slate-800'
+                      ? 'bg-[#00E676] text-black border-[#00E676]'
+                      : 'bg-[#171717] text-[#8A8A8A] border-[#292929] hover:text-white'
                   }`}
                 >
-                  🎯 Bowl First
+                  ⚾ Bowl First
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-5 py-3 rounded-xl text-sm font-semibold bg-stadium-800 text-slate-300 hover:text-white"
-          >
-            Cancel
-          </button>
+        {/* SECTION 4: MATCH PREVIEW & PRIMARY CTA */}
+        <div className="bg-[#151515] border-2 border-[#00E676] p-8 space-y-6">
+          <div className="flex items-center justify-between border-b border-[#292929] pb-4">
+            <span className="text-[11px] font-mono text-[#00E676] uppercase tracking-widest">// SCORECARD PREVIEW</span>
+            <span className="text-[11px] font-mono text-[#8A8A8A] uppercase">{matchType} • {effectiveOvers} OVERS</span>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 py-4">
+            <div className="text-center md:text-left">
+              <span className="text-[10px] font-mono text-[#8A8A8A] uppercase">HOST TEAM</span>
+              <h3 className="text-2xl font-black text-white uppercase">{teamAName}</h3>
+              <p className="text-xs font-mono text-[#5F5F5F] mt-1">{teamAPlayers.length} PLAYERS READY</p>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <span className="text-xs font-mono font-bold text-[#00E676] bg-[#00E676]/10 px-3 py-1 border border-[#00E676]/30">
+                VS
+              </span>
+              <span className="text-[10px] font-mono text-[#8A8A8A] mt-2">
+                TOSS: {tossWinner === 'A' ? teamAName : teamBName} ({tossDecision.toUpperCase()})
+              </span>
+            </div>
+
+            <div className="text-center md:text-right">
+              <span className="text-[10px] font-mono text-[#8A8A8A] uppercase">OPPOSITION</span>
+              <h3 className="text-2xl font-black text-white uppercase">{teamBName}</h3>
+              <p className="text-xs font-mono text-[#5F5F5F] mt-1">{teamBPlayers.length} PLAYERS READY</p>
+            </div>
+          </div>
+
           <button
             type="submit"
-            className="flex items-center gap-2 px-8 py-3.5 rounded-xl font-black text-base bg-gradient-to-r from-cricket-600 via-cricket-500 to-cricket-neon text-black shadow-neon hover:scale-105 active:scale-95 transition-all"
+            className="w-full bg-[#00E676] hover:bg-[#00c865] text-black py-4 px-6 font-black uppercase text-base tracking-widest flex items-center justify-center gap-3 transition-colors shadow-lg"
           >
-            <Play className="w-5 h-5 fill-black" />
-            <span>Start Match & Open Live Scorer</span>
+            <Play className="w-5 h-5 fill-current" />
+            <span>START MATCH NOW</span>
           </button>
         </div>
       </form>
@@ -607,9 +587,9 @@ export const CreateMatch: React.FC<CreateMatchProps> = ({ onStartMatch, onCancel
       {editingPlayer && (
         <EditPlayerModal
           isOpen={!!editingPlayer}
-          onClose={() => setEditingPlayer(null)}
           player={editingPlayer}
           onSavePlayer={handleSaveCreatedPlayer}
+          onClose={() => setEditingPlayer(null)}
         />
       )}
     </div>

@@ -3,13 +3,8 @@ import { Match } from '../types/cricket';
 import { calculateInningsScore } from '../utils/scoring';
 import { ConfirmModal } from '../components/ConfirmModal';
 import {
-  History,
   Trash2,
-  Play,
-  Eye,
-  Calendar,
-  Search,
-  Trophy,
+  Search
 } from 'lucide-react';
 
 interface MatchHistoryProps {
@@ -28,64 +23,80 @@ export const MatchHistory: React.FC<MatchHistoryProps> = ({
   onNavigate,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterTab, setFilterTab] = useState<'all' | 'wins' | 'live'>('all');
   const [matchToDelete, setMatchToDelete] = useState<Match | null>(null);
 
   const filteredMatches = matches.filter((m) => {
     const q = searchTerm.toLowerCase();
-    return (
+    const matchesSearch =
       m.name.toLowerCase().includes(q) ||
       m.teamA.name.toLowerCase().includes(q) ||
-      m.teamB.name.toLowerCase().includes(q)
-    );
+      m.teamB.name.toLowerCase().includes(q);
+
+    if (!matchesSearch) return false;
+
+    if (filterTab === 'live') return m.status === 'live';
+    if (filterTab === 'wins') return m.status === 'completed' && !!m.winMargin;
+    return true;
   });
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-16">
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-24 text-[#F5F5F0]">
       {/* Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 glass-panel p-5 rounded-2xl border border-slate-800 bg-stadium-900/90">
+      <div className="border-b border-[#292929] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-white flex items-center gap-2">
-            <History className="w-5 h-5 text-cricket-neon" />
-            <span>Saved Matches Archive</span>
-          </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            All locally preserved matches, verified ball deliveries, and historical scorecards.
-          </p>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#00E676] mb-1">
+            <span>Historical Feed</span>
+          </div>
+          <h1 className="text-3xl font-black uppercase tracking-tight text-white">Match Archive</h1>
+          <p className="text-xs text-[#8A8A8A] mt-1">Verified scorecard timeline, ball delivery records, and match outcomes.</p>
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search teams or match..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-stadium-850 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-cricket-500 focus:outline-none"
-          />
+        {/* Search & Filter */}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-[#5F5F5F]" />
+            <input
+              type="text"
+              placeholder="Filter matches or teams..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-[#111111] border border-[#292929] text-xs text-white placeholder-[#5F5F5F] focus:border-[#00E676] focus:outline-none font-mono"
+            />
+          </div>
+
+          <div className="flex items-center border border-[#292929] bg-[#111111] p-0.5 w-full sm:w-auto">
+            {(['all', 'wins', 'live'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setFilterTab(tab)}
+                className={`px-3 py-1.5 text-[10px] font-mono uppercase font-bold transition-colors ${
+                  filterTab === tab
+                    ? 'bg-[#00E676] text-black'
+                    : 'text-[#8A8A8A] hover:text-white'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {filteredMatches.length === 0 ? (
-        <div className="glass-panel p-12 text-center rounded-2xl border border-dashed border-slate-800 space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-stadium-850 mx-auto flex items-center justify-center text-slate-500">
-            <Trophy className="w-6 h-6" />
-          </div>
-          <h3 className="text-base font-bold text-white">No Matches Found</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            {searchTerm
-              ? `No matches match "${searchTerm}".`
-              : 'You have not recorded any matches yet.'}
+        <div className="bg-[#111111] border border-dashed border-[#292929] p-12 text-center space-y-4">
+          <p className="text-xs font-mono text-[#8A8A8A]">
+            {searchTerm ? `NO MATCHES MATCHING "${searchTerm.toUpperCase()}"` : 'NO RECORDED MATCHES IN ARCHIVE.'}
           </p>
           <button
             onClick={() => onNavigate('create-match')}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-cricket-500 text-black hover:bg-cricket-400 shadow-neon"
+            className="px-5 py-2.5 bg-[#00E676] text-black text-xs font-mono uppercase font-bold tracking-wider hover:bg-[#00c865]"
           >
             + Create New Match
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           {filteredMatches.map((m) => {
             const inn1 = m.innings[0];
             const inn2 = m.innings[1];
@@ -96,88 +107,84 @@ export const MatchHistory: React.FC<MatchHistoryProps> = ({
             return (
               <div
                 key={m.id}
-                className="glass-panel rounded-2xl p-5 border border-slate-800 bg-stadium-900/80 flex flex-col justify-between hover:border-slate-700 transition-all space-y-4"
+                className="bg-[#111111] border border-[#292929] p-5 hover:border-[#5F5F5F] transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
               >
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-2">
-                    <span className="font-bold text-slate-300 truncate max-w-[200px]">
-                      {m.name}
+                {/* Match Overview */}
+                <div className="space-y-3 flex-1">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-mono text-[#8A8A8A] uppercase">
+                      {new Date(m.createdAt).toLocaleDateString()}
                     </span>
                     <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                        isLive
-                          ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse'
-                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      className={`text-[9px] font-mono font-bold uppercase px-2 py-0.5 ${
+                        isLive ? 'bg-red-500 text-white' : 'bg-[#292929] text-[#00E676]'
                       }`}
                     >
                       {m.status}
                     </span>
+                    <span className="text-[10px] font-mono text-[#5F5F5F]">{m.name}</span>
                   </div>
 
-                  <div className="space-y-2 mt-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white text-sm">{m.teamA.name}</span>
-                      <span className="font-black text-white text-sm">
-                        {score1 ? `${score1.totalRuns}/${score1.wickets}` : '0/0'}{' '}
-                        <span className="text-slate-400 text-xs font-normal">
-                          ({score1?.oversFormatted} ov)
+                  {/* Scorecard row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="border-l-2 border-[#00E676] pl-3 py-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm uppercase text-white">{m.teamA.name}</span>
+                        <span className="font-mono font-bold text-sm text-white">
+                          {score1 ? `${score1.totalRuns}/${score1.wickets}` : '0/0'}
+                          <span className="text-[10px] text-[#8A8A8A] ml-1 font-normal">
+                            ({score1?.oversFormatted} ov)
+                          </span>
                         </span>
-                      </span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-300 text-sm">{m.teamB.name}</span>
-                      <span className="font-black text-slate-300 text-sm">
-                        {score2 ? `${score2.totalRuns}/${score2.wickets}` : 'Yet to Bat'}{' '}
-                        {score2 && (
-                          <span className="text-slate-500 text-xs font-normal">
-                            ({score2.oversFormatted} ov)
-                          </span>
-                        )}
-                      </span>
+                    <div className="border-l-2 border-[#292929] pl-3 py-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm uppercase text-[#8A8A8A]">{m.teamB.name}</span>
+                        <span className="font-mono font-bold text-sm text-[#8A8A8A]">
+                          {score2 ? `${score2.totalRuns}/${score2.wickets}` : 'Yet to Bat'}
+                          {score2 && (
+                            <span className="text-[10px] text-[#5F5F5F] ml-1 font-normal">
+                              ({score2.oversFormatted} ov)
+                            </span>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
                   {m.winMargin && (
-                    <div className="mt-3 p-2 rounded-xl bg-cricket-950/40 border border-cricket-500/20 text-xs font-bold text-cricket-neon">
-                      🏆 {m.winMargin}
-                    </div>
+                    <p className="text-[11px] font-mono text-[#00E676] uppercase">
+                      🏆 RESULT: {m.winMargin}
+                    </p>
                   )}
                 </div>
 
-                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-500 font-mono text-[11px]">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>{new Date(m.createdAt).toLocaleDateString()}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {isLive && (
-                      <button
-                        onClick={() => onResumeMatch(m)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-black bg-cricket-500 text-black hover:bg-cricket-400 shadow-neon"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-black" />
-                        <span>Resume</span>
-                      </button>
-                    )}
-
+                {/* Actions */}
+                <div className="flex items-center gap-2 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-[#292929]">
+                  {isLive ? (
+                    <button
+                      onClick={() => onResumeMatch(m)}
+                      className="flex-1 md:flex-none px-4 py-2 bg-[#00E676] text-black text-xs font-mono uppercase font-bold hover:bg-[#00c865]"
+                    >
+                      Resume Scoring
+                    </button>
+                  ) : (
                     <button
                       onClick={() => onSelectMatch(m)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-stadium-800 hover:bg-stadium-750 text-slate-200 border border-slate-700"
+                      className="flex-1 md:flex-none px-4 py-2 bg-[#171717] hover:bg-[#292929] text-white border border-[#292929] text-xs font-mono uppercase font-bold"
                     >
-                      <Eye className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Scorecard</span>
+                      View Scorecard
                     </button>
+                  )}
 
-                    <button
-                      onClick={() => setMatchToDelete(m)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-950/40 transition-colors"
-                      title="Delete match"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setMatchToDelete(m)}
+                    className="p-2 bg-[#171717] hover:bg-red-500/20 text-[#5F5F5F] hover:text-red-400 border border-[#292929]"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             );
@@ -185,21 +192,21 @@ export const MatchHistory: React.FC<MatchHistoryProps> = ({
         </div>
       )}
 
-      {/* Confirm Delete Match Modal */}
-      <ConfirmModal
-        isOpen={!!matchToDelete}
-        onClose={() => setMatchToDelete(null)}
-        onConfirm={() => {
-          if (matchToDelete) {
+      {/* Confirm Delete Modal */}
+      {matchToDelete && (
+        <ConfirmModal
+          isOpen={!!matchToDelete}
+          title="Delete Match Record?"
+          message={`Are you sure you want to permanently delete "${matchToDelete.name}"? This action cannot be undone.`}
+          confirmText="Delete Match"
+          isDestructive={true}
+          onConfirm={() => {
             onDeleteMatch(matchToDelete.id);
             setMatchToDelete(null);
-          }
-        }}
-        title="Delete Match Record?"
-        message={`Are you sure you want to permanently delete "${matchToDelete?.name}"? All associated ball events and scorecards will be removed.`}
-        confirmText="Yes, Delete Match"
-        isDestructive={true}
-      />
+          }}
+          onClose={() => setMatchToDelete(null)}
+        />
+      )}
     </div>
   );
 };
