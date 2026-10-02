@@ -261,7 +261,7 @@ export const App: React.FC = () => {
     }
 
     return (
-      <div className="min-h-screen bg-stadium-950 text-slate-100 font-sans p-4 sm:p-8">
+      <div className="min-h-screen bg-[#070B12] text-slate-100 font-sans">
         <OwnerPanel
           onLogout={() => {
             localStorage.removeItem('tappascore_owner_user');
@@ -270,6 +270,7 @@ export const App: React.FC = () => {
             setCurrentRoute('owner-login');
           }}
           onShowToast={showToast}
+          onNavigateApp={(route) => setCurrentRoute(route)}
         />
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </div>
@@ -387,7 +388,7 @@ export const App: React.FC = () => {
             <span>No More <span className="text-cricket-400 font-semibold">#જગડો</span></span>
           </div>
           <div>
-            Created by <strong className="text-slate-200 font-black tracking-wide uppercase">PARTHIK RAMI AND RAJ SONI</strong>
+            Created by <strong className="text-slate-200 font-black tracking-wide uppercase">PARTHIK RAMI & RAJ SONI</strong>
           </div>
         </div>
       </footer>
