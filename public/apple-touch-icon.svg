@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
+  <rect width="180" height="180" rx="36" fill="#0B0B0B"/>
+  <circle cx="90" cy="90" r="68.4" fill="none" stroke="#00E676" stroke-width="9"/>
+  <path d="M 62.99999999999999 62.99999999999999 A 72 72 0 0 0 62.99999999999999 117" fill="none" stroke="#00E676" stroke-width="6.300000000000001"/>
+  <path d="M 117 62.99999999999999 A 72 72 0 0 1 117 117" fill="none" stroke="#00E676" stroke-width="6.300000000000001"/>
+  <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#FFFFFF" font-family="sans-serif" font-weight="900" font-size="72">T</text>
+</svg>

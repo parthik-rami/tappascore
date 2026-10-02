@@ -27,6 +27,8 @@ import { PublicLiveMatch } from './pages/PublicLiveMatch';
 import { PlayerStats } from './pages/PlayerStats';
 import { OwnerLogin } from './pages/OwnerLogin';
 import { OwnerPanel } from './pages/OwnerPanel';
+import { NetworkStatusBanner } from './components/NetworkStatusBanner';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 
 export const App: React.FC = () => {
   const [currentRoute, setCurrentRoute] = useState<string>('dashboard');
@@ -279,6 +281,9 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-stadium-950 text-slate-100 flex flex-col font-sans overflow-x-hidden">
+      {/* Offline / Reconnect Banner */}
+      <NetworkStatusBanner />
+
       {/* App Navigation */}
       <Navbar
         currentRoute={currentRoute}
@@ -286,6 +291,9 @@ export const App: React.FC = () => {
         activeMatch={activeMatch}
         user={authenticatedUser}
       />
+
+      {/* PWA Installation Prompt */}
+      <PWAInstallPrompt />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10">

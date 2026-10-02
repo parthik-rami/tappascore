@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="102.4" fill="#0B0B0B"/>
+  <circle cx="256" cy="256" r="194.56" fill="none" stroke="#00E676" stroke-width="25.6"/>
+  <path d="M 179.2 179.2 A 204.8 204.8 0 0 0 179.2 332.8" fill="none" stroke="#00E676" stroke-width="17.92"/>
+  <path d="M 332.8 179.2 A 204.8 204.8 0 0 1 332.8 332.8" fill="none" stroke="#00E676" stroke-width="17.92"/>
+  <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#FFFFFF" font-family="sans-serif" font-weight="900" font-size="204.8">T</text>
+</svg>
