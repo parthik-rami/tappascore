@@ -16,9 +16,11 @@ interface NavbarProps {
   onNavigate: (route: string) => void;
   activeMatch: Match | null;
   user?: { id?: string; name?: string; email: string; token?: string } | null;
+  selectedPlayer?: { id: string; name: string } | null;
+  onOpenSelectPlayer?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, activeMatch, user }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, activeMatch, user, selectedPlayer, onOpenSelectPlayer }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Trophy },
     { id: 'create-match', label: 'New Match', icon: PlusCircle },
@@ -80,18 +82,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, active
               })}
             </nav>
 
-            {/* Right User & Notification Controls */}
+            {/* Right: Player Identity + Notification Controls */}
             <div className="flex items-center gap-3 font-mono text-xs">
               {user && <NotificationBell user={user} />}
-              <div
-                onClick={() => onNavigate('player-stats')}
+              <button
+                onClick={onOpenSelectPlayer || (() => onNavigate('player-stats'))}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-[#111111] border border-[#292929] cursor-pointer hover:bg-[#171717] transition-colors"
               >
                 <User className="w-3.5 h-3.5 text-[#00E676]" />
                 <span className="font-bold text-[#F5F5F0] text-xs truncate max-w-[100px]">
-                  {user?.name || 'ATHLETE'}
+                  {selectedPlayer?.name || user?.name || 'SELECT PLAYER'}
                 </span>
-              </div>
+              </button>
             </div>
           </div>
         </div>

@@ -10,22 +10,32 @@ import { Match } from '../types/cricket';
 
 interface PlayerStatsProps {
   authenticatedUser?: { id?: string; name?: string; email: string } | null;
+  selectedPlayer?: { id: string; name: string } | null;
+  onOpenSelectPlayer?: () => void;
   onShowToast: (message: string, type?: 'success' | 'warning' | 'info' | 'error') => void;
   onNavigateApp?: (route: string) => void;
 }
 
 export const PlayerStats: React.FC<PlayerStatsProps> = ({
   authenticatedUser,
+  selectedPlayer,
+  onOpenSelectPlayer,
   onShowToast,
   onNavigateApp,
 }) => {
-  const defaultPlayerId = authenticatedUser?.id || authenticatedUser?.name || 'PARTHIK RAMI';
+  const defaultPlayerId = selectedPlayer?.id || selectedPlayer?.name || authenticatedUser?.id || authenticatedUser?.name || '';
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>(defaultPlayerId);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; isRegistered: boolean; statsVisibility: string }>>([]);
   const [statsData, setStatsData] = useState<PlayerStatsData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [graphMetric, setGraphMetric] = useState<'runs' | 'strikeRate' | 'average'>('runs');
+
+  useEffect(() => {
+    if (selectedPlayer?.id || selectedPlayer?.name) {
+      setSelectedPlayerId(selectedPlayer.id || selectedPlayer.name);
+    }
+  }, [selectedPlayer]);
 
   // Load player stats from API + Fallback to Local Storage
   useEffect(() => {
@@ -41,7 +51,7 @@ export const PlayerStats: React.FC<PlayerStatsProps> = ({
         setStatsData(data);
       } catch (err: any) {
         const localMatches = loadMatchHistory();
-        const computed = computeLocalPlayerStats(selectedPlayerId, authenticatedUser?.name || 'PARTHIK RAMI', localMatches);
+        const computed = computeLocalPlayerStats(selectedPlayerId, selectedPlayer?.name || authenticatedUser?.name || selectedPlayerId, localMatches);
         setStatsData(computed);
       } finally {
         setLoading(false);
@@ -49,7 +59,7 @@ export const PlayerStats: React.FC<PlayerStatsProps> = ({
     };
 
     loadStats();
-  }, [selectedPlayerId, authenticatedUser]);
+  }, [selectedPlayerId, authenticatedUser, selectedPlayer]);
 
   // Handle Player Search
   const handleSearch = async (query: string) => {
@@ -156,6 +166,15 @@ export const PlayerStats: React.FC<PlayerStatsProps> = ({
               className="px-3 py-1.5 bg-[#151515] border border-[#292929] text-xs font-mono font-bold text-white hover:bg-[#1A1A1A] rounded-sm cursor-pointer"
             >
               MY PROFILE
+            </button>
+          )}
+
+          {onOpenSelectPlayer && (
+            <button
+              onClick={onOpenSelectPlayer}
+              className="px-3 py-1.5 bg-[#00E676] text-black text-xs font-mono font-bold uppercase hover:bg-[#00c865] rounded-sm cursor-pointer transition-colors"
+            >
+              🔄 Switch
             </button>
           )}
         </div>

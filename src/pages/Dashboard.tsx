@@ -9,6 +9,8 @@ interface DashboardProps {
   onNavigate: (route: string) => void;
   onSelectMatch: (match: Match) => void;
   user?: { id?: string; name?: string; email: string } | null;
+  selectedPlayer?: { id: string; name: string } | null;
+  onOpenSelectPlayer?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -17,6 +19,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNavigate,
   onSelectMatch,
   user,
+  selectedPlayer,
+  onOpenSelectPlayer,
 }) => {
   const [graphMetric, setGraphMetric] = useState<'runs' | 'strikeRate' | 'average'>('runs');
 
@@ -174,7 +178,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     };
   }, [matches]);
 
-  const playerName = user?.name || 'PARTHIK RAMI';
+  const playerName = selectedPlayer?.name || user?.name || 'ATHLETE';
   const recentFormList = stats.inningsTimeline.slice(0, 6);
 
   return (
@@ -216,6 +220,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span>ATHLETE PROFILE</span>
                 <span>/</span>
                 <span className="text-[#00E676]">TAPPA SCORE CLUB</span>
+                {onOpenSelectPlayer && (
+                  <button
+                    onClick={onOpenSelectPlayer}
+                    className="ml-2 px-2 py-0.5 bg-[#171717] hover:bg-[#222222] border border-[#292929] text-[9px] text-[#00E676] font-bold uppercase transition-colors cursor-pointer"
+                  >
+                    🔄 Switch Player
+                  </button>
+                )}
               </div>
               <h1 className="text-3xl sm:text-5xl font-black text-[#F5F5F0] tracking-tight uppercase font-sans">
                 {playerName}
