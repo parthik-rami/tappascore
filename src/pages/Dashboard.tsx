@@ -131,10 +131,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             <button
               onClick={() => onNavigate('match-history')}
-              className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-base bg-stadium-800 hover:bg-stadium-750 text-white border border-slate-700 transition-all hover:border-slate-600"
+              className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-base bg-stadium-800 hover:bg-stadium-750 text-white border border-slate-700 transition-all hover:border-slate-600 cursor-pointer"
             >
               <History className="w-5 h-5 text-slate-400" />
               <span>View Match History</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('player-stats')}
+              className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-base bg-emerald-500/15 hover:bg-emerald-500/25 text-cricket-neon border border-emerald-500/30 transition-all cursor-pointer"
+            >
+              <Activity className="w-5 h-5 text-cricket-neon" />
+              <span>Player Command Center</span>
             </button>
           </div>
         </div>
