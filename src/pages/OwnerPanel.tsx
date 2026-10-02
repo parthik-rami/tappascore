@@ -18,6 +18,7 @@ import { loadMatchHistory, loadCurrentMatch } from '../utils/storage';
 import { calculateInningsScore } from '../utils/scoring';
 import { Match } from '../types/cricket';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { ShaderDithering } from '../components/ui/shader-dithering';
 import {
   LayoutDashboard,
   Users,
@@ -536,8 +537,20 @@ export const OwnerPanel: React.FC<OwnerPanelProps> = ({ onLogout, onShowToast, o
               transition={{ duration: 0.3 }}
               className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-indigo-950/90 via-[#0E1528] to-slate-900 border border-indigo-500/30 shadow-2xl group"
             >
-              {/* Stylized background glow */}
+              {/* Stylized background glow & Shader Dithering */}
               <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-gradient-to-bl from-indigo-500/20 via-emerald-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute inset-0 pointer-events-none z-0 opacity-25 overflow-hidden rounded-3xl">
+                <ShaderDithering
+                  className="absolute inset-0 w-full h-full"
+                  width={1920}
+                  height={1080}
+                  colorBack="#0b1020"
+                  colorFront="#3949ab"
+                  shape="wave"
+                  type="4x4"
+                  size={2}
+                />
+              </div>
 
               <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                 <div className="space-y-2 max-w-2xl">
