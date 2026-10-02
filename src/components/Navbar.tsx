@@ -70,9 +70,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => onNavigate('dashboard')}
               className="flex items-center gap-3 cursor-pointer select-none"
             >
-              <div className="w-8 h-8 rounded-sm bg-[#171717] border border-[#292929] flex items-center justify-center font-mono font-black text-xs text-white">
-                TS
-              </div>
+              <img
+                src="/icons/tappascore-192.png"
+                alt="TappaScore"
+                className="w-10 h-10 rounded-sm border border-[#292929] object-cover shrink-0"
+              />
               <div className="flex items-center gap-2">
                 <span className="text-lg font-black tracking-tight text-[#F5F5F0] uppercase font-mono">
                   TAPPA<span className="text-[#00E676]">SCORE</span>
