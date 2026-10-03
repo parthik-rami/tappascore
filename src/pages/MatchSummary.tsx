@@ -17,11 +17,9 @@ import {
   Users,
   Shield,
   Radio,
-  Star,
-  MessageSquare,
-  Send,
   Edit3,
 } from 'lucide-react';
+
 
 interface MatchSummaryProps {
   match: Match;
@@ -40,12 +38,6 @@ export const MatchSummary: React.FC<MatchSummaryProps> = ({
 }) => {
   const [selectedInningsIndex, setSelectedInningsIndex] = useState<0 | 1>(0);
   const [copied, setCopied] = useState(false);
-
-  // Post-Match Rating & Review state
-  const [rating, setRating] = useState<number>(match.review?.rating || 5);
-  const [hoverRating, setHoverRating] = useState<number>(0);
-  const [feedback, setFeedback] = useState<string>(match.review?.feedback || '');
-  const [isEditingReview, setIsEditingReview] = useState<boolean>(!match.review);
 
   const inn1 = match.innings[0];
   const inn2 = match.innings[1];
@@ -111,27 +103,6 @@ export const MatchSummary: React.FC<MatchSummaryProps> = ({
     });
   };
 
-  // Submit Post-Match App Rating & Review
-  const handleSubmitReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (rating < 1 || rating > 5) return;
-
-    const updatedReview = {
-      rating,
-      feedback: feedback.trim() || undefined,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedMatch: Match = {
-      ...match,
-      review: updatedReview,
-      updatedAt: new Date().toISOString(),
-    };
-
-    onUpdateMatch(updatedMatch);
-    setIsEditingReview(false);
-    onShowToast(`⭐ Thank you for rating TappaScore (${rating}/5 Stars)!`, 'success');
-  };
 
   // Current logged in user ID check for Captain permissions
   let currentUserId: string | undefined;
