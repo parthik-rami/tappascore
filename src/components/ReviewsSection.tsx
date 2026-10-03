@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Heart, MessageSquare, Send, CheckCircle2, AlertCircle, RefreshCw, X } from 'lucide-react';
-import { fetchPublicReviewsApi, submitVisitorReviewApi, ReviewSummaryData } from '../utils/reviewApi';
+import { fetchPublicReviewsApi, submitVisitorReviewApi, fetchUserReviewStatusApi, ReviewSummaryData } from '../utils/reviewApi';
 
 interface ReviewsSectionProps {
   matchId?: string;
@@ -16,6 +16,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ matchId, onShowT
   });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
 
   // Form states
   const [name, setName] = useState('');
@@ -34,14 +35,40 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ matchId, onShowT
     setLoading(false);
   };
 
+  const checkUserStatus = async () => {
+    let userEmail = email.trim();
+    try {
+      const saved = localStorage.getItem('tappascore_auth_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.name && !name) setName(parsed.name);
+        if (parsed?.email) {
+          if (!userEmail) setEmail(parsed.email);
+          userEmail = parsed.email;
+        }
+      }
+    } catch (e) {}
+
+    const status = await fetchUserReviewStatusApi(userEmail || undefined);
+    if (status.hasReviewed) {
+      setHasSubmittedReview(true);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    checkUserStatus();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setFormSuccess(null);
+
+    if (hasSubmittedReview) {
+      setFormError('You have already submitted your review.');
+      return;
+    }
 
     if (!name.trim()) {
       setFormError('Please enter your name.');
@@ -63,21 +90,27 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ matchId, onShowT
     });
     setSubmitting(false);
 
-    if (!res.success) {
-      setFormError(res.message);
-      if (onShowToast) onShowToast(res.message, 'warning');
+    if (res.isDuplicate || !res.success) {
+      if (res.isDuplicate || (res.message && res.message.toLowerCase().includes('already submitted'))) {
+        setHasSubmittedReview(true);
+        setFormError('You have already submitted your review.');
+        if (onShowToast) onShowToast('You have already submitted your review.', 'warning');
+        setTimeout(() => {
+          setShowModal(false);
+        }, 1500);
+      } else {
+        setFormError(res.message);
+        if (onShowToast) onShowToast(res.message, 'warning');
+      }
     } else {
+      setHasSubmittedReview(true);
       setFormSuccess(res.message);
       if (onShowToast) onShowToast(res.message, 'success');
-      setName('');
-      setEmail('');
-      setComment('');
-      setRating(5);
       loadData();
       setTimeout(() => {
         setShowModal(false);
         setFormSuccess(null);
-      }, 2000);
+      }, 1500);
     }
   };
 
@@ -121,13 +154,23 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ matchId, onShowT
           </div>
         </div>
 
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-black text-sm bg-gradient-to-r from-cricket-600 via-cricket-500 to-cricket-neon text-black shadow-neon hover:scale-105 active:scale-95 transition-all shrink-0"
-        >
-          <MessageSquare className="w-4 h-4 fill-black" />
-          <span>Give Review & Support</span>
-        </button>
+        {hasSubmittedReview ? (
+          <div className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold shrink-0">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>You have already submitted your review.</span>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              checkUserStatus();
+              setShowModal(true);
+            }}
+            className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-black text-sm bg-gradient-to-r from-cricket-600 via-cricket-500 to-cricket-neon text-black shadow-neon hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer"
+          >
+            <MessageSquare className="w-4 h-4 fill-black" />
+            <span>Give Review & Support</span>
+          </button>
+        )}
       </div>
 
       {/* Reviews List Display */}
@@ -208,118 +251,137 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ matchId, onShowT
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-1 rounded-lg bg-stadium-800 hover:bg-stadium-750 text-slate-400 hover:text-white"
+                className="p-1 rounded-lg bg-stadium-800 hover:bg-stadium-750 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-              {formError && (
-                <div className="p-3 text-xs font-semibold text-rose-300 bg-rose-950/60 border border-rose-800 rounded-xl flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>{formError}</span>
+            {hasSubmittedReview ? (
+              <div className="p-8 text-center space-y-4">
+                <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-400" />
                 </div>
-              )}
-
-              {formSuccess && (
-                <div className="p-3 text-xs font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-800 rounded-xl flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>{formSuccess}</span>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1.5">
-                  Your Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Raju"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-stadium-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cricket-500 text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1">
-                  Email Address *
-                </label>
-                <p className="text-[11px] text-slate-400 mb-1.5">
-                  Used solely for identifying a unique supporter. Will <strong className="text-amber-400">NEVER</strong> be displayed publicly.
+                <h4 className="text-base font-bold text-white">You have already submitted your review.</h4>
+                <p className="text-xs text-slate-400">
+                  Thank you for supporting TappaScore! Each account is allowed maximum 1 review.
                 </p>
-                <input
-                  type="email"
-                  required
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-stadium-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cricket-500 text-xs"
-                />
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-6 py-2 rounded-xl bg-stadium-800 hover:bg-stadium-750 text-white font-bold text-xs cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
-
-              <div>
-                <label className="block text-slate-300 font-bold uppercase tracking-wider mb-2">
-                  Rating *
-                </label>
-                <div className="flex items-center gap-2 bg-stadium-950 p-3 rounded-xl border border-slate-800 justify-center">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRating(star)}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      className="p-1 focus:outline-none hover:scale-125 transition-transform"
-                    >
-                      <Star
-                        className={`w-6 h-6 ${
-                          star <= (hoverRating || rating)
-                            ? 'text-amber-400 fill-amber-400'
-                            : 'text-slate-700'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                  <span className="ml-2 font-black text-white text-sm">
-                    {hoverRating || rating} / 5
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1.5">
-                  Review Text / Feedback
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Very useful cricket scoring app. No more #જગડો!"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-stadium-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cricket-500 text-xs"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-3 px-4 bg-gradient-to-r from-cricket-600 via-cricket-500 to-cricket-neon text-black font-black rounded-xl shadow-neon transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
-              >
-                {submitting ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    <span>Submit Review & Join Supporters</span>
-                  </>
+            ) : (
+              <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+                {formError && (
+                  <div className="p-3 text-xs font-semibold text-rose-300 bg-rose-950/60 border border-rose-800 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{formError}</span>
+                  </div>
                 )}
-              </button>
-            </form>
+
+                {formSuccess && (
+                  <div className="p-3 text-xs font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-800 rounded-xl flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{formSuccess}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1.5">
+                    Your Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Raju"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-stadium-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cricket-500 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1">
+                    Email Address *
+                  </label>
+                  <p className="text-[11px] text-slate-400 mb-1.5">
+                    Used solely for identifying a unique supporter. Will <strong className="text-amber-400">NEVER</strong> be displayed publicly.
+                  </p>
+                  <input
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-stadium-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cricket-500 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-2">
+                    Rating *
+                  </label>
+                  <div className="flex items-center gap-2 bg-stadium-950 p-3 rounded-xl border border-slate-800 justify-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className="p-1 focus:outline-none hover:scale-125 transition-transform cursor-pointer"
+                      >
+                        <Star
+                          className={`w-6 h-6 ${
+                            star <= (hoverRating || rating)
+                              ? 'text-amber-400 fill-amber-400'
+                              : 'text-slate-700'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    <span className="ml-2 font-black text-white text-sm">
+                      {hoverRating || rating} / 5
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1.5">
+                    Review Text / Feedback
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Very useful cricket scoring app. No more #જગડો!"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-stadium-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cricket-500 text-xs"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-cricket-600 via-cricket-500 to-cricket-neon text-black font-black rounded-xl shadow-neon transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2 cursor-pointer"
+                >
+                  {submitting ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Submit Review & Join Supporters</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}
     </div>
   );
 };
+

@@ -89,17 +89,18 @@ export const register = async (req, res) => {
 };
 
 /**
- * Controller to authenticate an existing user with Email + Password.
+ * Controller to authenticate an existing user with Username/Email + Password.
  * Endpoint: POST /api/auth/login
  */
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, identifier, username, password } = req.body;
+    const input = String(identifier || username || email || '').trim();
 
-    if (!email || !emailRegex.test(String(email).trim())) {
+    if (!input) {
       return res.status(400).json({
         success: false,
-        message: 'Please enter a valid email address.',
+        message: 'Please enter your username or email address.',
       });
     }
 
@@ -110,13 +111,18 @@ export const login = async (req, res) => {
       });
     }
 
-    const cleanEmail = String(email).trim().toLowerCase();
+    const escapedInput = input.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    const user = await User.findOne({
+      $or: [
+        { email: input.toLowerCase() },
+        { name: new RegExp(`^${escapedInput}$`, 'i') },
+      ],
+    });
 
-    const user = await User.findOne({ email: cleanEmail });
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password.',
+        message: 'Invalid username/email or password.',
       });
     }
 
@@ -124,7 +130,7 @@ export const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password.',
+        message: 'Invalid username/email or password.',
       });
     }
 
@@ -145,7 +151,8 @@ export const login = async (req, res) => {
     console.error('Error in login:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error while logging in.',
+      message: 'Unable to connect to server. Please try again.',
     });
   }
 };
+

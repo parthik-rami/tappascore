@@ -34,6 +34,12 @@ const reviewSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      index: true,
+    },
     hidden: {
       type: Boolean,
       default: false,
@@ -45,9 +51,11 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
-// We define index on normalizedEmail. We won't strictly enforce unique: true on the schema if existing duplicate emails exist,
-// but our submit review controller will enforce 1 normalized email = 1 review or duplicate check.
+// Define sparse unique indexes to strictly enforce 1 review per authenticated user / normalized email
+reviewSchema.index({ userId: 1 }, { unique: true, sparse: true });
+reviewSchema.index({ normalizedEmail: 1 }, { unique: true, sparse: true });
 
 const Review = mongoose.model('Review', reviewSchema);
 
 export default Review;
+

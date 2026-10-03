@@ -1,10 +1,70 @@
 import Review from '../models/Review.js';
 import MatchModel from '../models/Match.js';
+import { verifyJwt } from '../utils/jwt.js';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Simple in-memory rate limiter per IP for review submission (max 10 submissions per 15 minutes)
 const ipSubmissionTracker = new Map();
+
+/**
+ * Helper function to extract user ID from optional Bearer token
+ */
+const getOptionalUserId = (req) => {
+  try {
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = verifyJwt(token);
+      return decoded ? decoded.id : null;
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+};
+
+/**
+ * GET /api/reviews/user-status
+ * Check if the current authenticated user / email has already submitted a review.
+ */
+export const getUserReviewStatus = async (req, res) => {
+  try {
+    const userId = getOptionalUserId(req);
+    const email = req.query.email ? String(req.query.email).trim().toLowerCase() : null;
+
+    if (!userId && !email) {
+      return res.status(200).json({
+        success: true,
+        hasReviewed: false,
+        data: null,
+      });
+    }
+
+    const queryOr = [];
+    if (userId) queryOr.push({ userId });
+    if (email) queryOr.push({ normalizedEmail: email });
+
+    const existing = await Review.findOne({ $or: queryOr });
+
+    return res.status(200).json({
+      success: true,
+      hasReviewed: !!existing,
+      message: existing ? 'You have already submitted a review.' : undefined,
+      data: existing
+        ? {
+            id: existing._id.toString(),
+            name: existing.name,
+            rating: existing.rating,
+            comment: existing.comment,
+            createdAt: existing.createdAt,
+          }
+        : null,
+    });
+  } catch (error) {
+    console.error('Error in getUserReviewStatus:', error);
+    return res.status(500).json({ success: false, message: 'Server error checking review status.' });
+  }
+};
 
 /**
  * Migration helper to safely migrate any legacy match embedded reviews into standalone Review document collection
@@ -103,7 +163,7 @@ export const getPublicReviews = async (req, res) => {
 
 /**
  * POST /api/reviews
- * Public endpoint to submit a review without requiring login.
+ * Public / authenticated endpoint to submit a review (enforcing 1 review per user/email).
  */
 export const submitReview = async (req, res) => {
   try {
@@ -125,6 +185,7 @@ export const submitReview = async (req, res) => {
     }
 
     const { name, email, rating, comment, matchId } = req.body;
+    const userId = getOptionalUserId(req);
 
     if (!name || !String(name).trim()) {
       return res.status(400).json({ success: false, message: 'Reviewer name is required.' });
@@ -144,25 +205,41 @@ export const submitReview = async (req, res) => {
     const normalizedEmail = cleanEmail.toLowerCase();
     const cleanComment = comment ? String(comment).trim() : '';
 
-    // Check duplicate reviewer by normalizedEmail
-    const existingReview = await Review.findOne({ normalizedEmail });
+    // Check duplicate reviewer by userId or normalizedEmail
+    const queryOr = [{ normalizedEmail }];
+    if (userId) {
+      queryOr.push({ userId });
+    }
+
+    const existingReview = await Review.findOne({ $or: queryOr });
     if (existingReview) {
       return res.status(409).json({
         success: false,
-        message: 'You have already submitted a review with this email address. Thank you for supporting TappaScore!',
+        message: 'You have already submitted a review.',
       });
     }
 
-    // Save review securely
-    const newReview = await Review.create({
-      name: cleanName,
-      email: cleanEmail,
-      normalizedEmail,
-      rating: numericRating,
-      comment: cleanComment,
-      matchId: matchId || null,
-      hidden: false,
-    });
+    let newReview;
+    try {
+      newReview = await Review.create({
+        userId: userId || null,
+        name: cleanName,
+        email: cleanEmail,
+        normalizedEmail,
+        rating: numericRating,
+        comment: cleanComment,
+        matchId: matchId || null,
+        hidden: false,
+      });
+    } catch (createErr) {
+      if (createErr.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          message: 'You have already submitted a review.',
+        });
+      }
+      throw createErr;
+    }
 
     // Update rate limit tracker
     clientRecord.count += 1;
@@ -201,3 +278,4 @@ export const submitReview = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error while submitting review.' });
   }
 };
+

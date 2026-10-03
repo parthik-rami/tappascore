@@ -17,6 +17,23 @@ export interface ReviewSummaryData {
 }
 
 /**
+ * Helper to get authorization header from localStorage session
+ */
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    const saved = localStorage.getItem('tappascore_auth_user');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed?.token) {
+        headers['Authorization'] = `Bearer ${parsed.token}`;
+      }
+    }
+  } catch (e) {}
+  return headers;
+}
+
+/**
  * Fetch public reviews and supporter count
  */
 export async function fetchPublicReviewsApi(): Promise<ReviewSummaryData> {
@@ -38,7 +55,36 @@ export async function fetchPublicReviewsApi(): Promise<ReviewSummaryData> {
 }
 
 /**
- * Submit a review as a visitor (No login required)
+ * Fetch review status for current user / email
+ */
+export async function fetchUserReviewStatusApi(email?: string): Promise<{
+  hasReviewed: boolean;
+  message?: string;
+  data?: PublicReview | null;
+}> {
+  try {
+    const params = new URLSearchParams();
+    if (email) params.append('email', email);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(buildApiUrl(`/api/reviews/user-status${queryString}`), {
+      headers: getAuthHeaders(),
+    });
+    const json = await res.json();
+    if (res.ok && json.success) {
+      return {
+        hasReviewed: Boolean(json.hasReviewed),
+        message: json.message,
+        data: json.data,
+      };
+    }
+  } catch (err) {
+    console.error('Failed to fetch user review status:', err);
+  }
+  return { hasReviewed: false };
+}
+
+/**
+ * Submit a review (enforcing 1 review per user/email)
  */
 export async function submitVisitorReviewApi(payload: {
   name: string;
@@ -46,12 +92,13 @@ export async function submitVisitorReviewApi(payload: {
   rating: number;
   comment?: string;
   matchId?: string;
-}): Promise<{ success: boolean; message: string; data?: PublicReview }> {
+}): Promise<{ success: boolean; message: string; isDuplicate?: boolean; data?: PublicReview }> {
   try {
     const targetUrl = buildApiUrl('/api/reviews');
+    const headers = getAuthHeaders();
     const res = await fetch(targetUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
     });
 
@@ -64,6 +111,14 @@ export async function submitVisitorReviewApi(payload: {
     }
 
     const json = await res.json();
+    if (res.status === 409 || (json && json.message && json.message.toLowerCase().includes('already submitted'))) {
+      return {
+        success: false,
+        message: 'You have already submitted your review.',
+        isDuplicate: true,
+      };
+    }
+
     if (!res.ok || !json.success) {
       return { success: false, message: json.message || 'Failed to submit review.' };
     }
@@ -73,3 +128,4 @@ export async function submitVisitorReviewApi(payload: {
     return { success: false, message: err.message || 'Network error submitting review.' };
   }
 }
+

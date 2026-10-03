@@ -30,6 +30,7 @@ import { OwnerPanel } from './pages/OwnerPanel';
 import { NetworkStatusBanner } from './components/NetworkStatusBanner';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { PlayerOnboarding } from './components/PlayerOnboarding';
+import { WatchLive, extractMatchIdFromInput } from './pages/WatchLive';
 
 export const App: React.FC = () => {
   const [currentRoute, setCurrentRoute] = useState<string>('dashboard');
@@ -92,7 +93,25 @@ export const App: React.FC = () => {
           return;
         }
       }
+
+      if (pathname && (pathname.startsWith('/live/') || pathname.startsWith('/match/'))) {
+        const id = extractMatchIdFromInput(pathname);
+        if (id) {
+          setPublicLiveMatchId(id);
+          return;
+        }
+      }
+
+      if (hash && (hash.startsWith('#/live/') || hash.startsWith('#/match/'))) {
+        const id = extractMatchIdFromInput(hash);
+        if (id) {
+          setPublicLiveMatchId(id);
+          return;
+        }
+      }
+
       setPublicLiveMatchId(null);
+
 
       // Check Owner Panel routes: /owner or #owner or #/owner
       if (pathname === '/owner' || hash === '#owner' || hash === '#/owner') {
@@ -362,6 +381,17 @@ export const App: React.FC = () => {
             onOpenSelectPlayer={() => setShowPlayerSelect(true)}
           />
         )}
+
+        {currentRoute === 'watch-live' && (
+          <WatchLive
+            onOpenPublicMatch={(matchId) => {
+              setPublicLiveMatchId(matchId);
+              window.location.hash = `#live-${matchId}`;
+            }}
+            onBackToDashboard={() => setCurrentRoute('dashboard')}
+          />
+        )}
+
 
         {currentRoute === 'create-match' && (
           <CreateMatch

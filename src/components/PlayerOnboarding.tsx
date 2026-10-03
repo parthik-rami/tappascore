@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronRight, UserPlus, ArrowLeft, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { searchPlayersList } from '../utils/playerApi';
+import { ChevronRight, UserPlus, ArrowLeft, Check, AlertCircle, Eye, EyeOff, LogIn } from 'lucide-react';
 import { buildApiUrl } from '../config/api';
 
 interface PlayerOnboardingProps {
@@ -11,7 +10,7 @@ interface PlayerOnboardingProps {
   canClose?: boolean;
 }
 
-type OnboardingView = 'main' | 'create' | 'find';
+type OnboardingView = 'main' | 'create' | 'login';
 type FormStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export const PlayerOnboarding: React.FC<PlayerOnboardingProps> = ({
@@ -33,10 +32,12 @@ export const PlayerOnboarding: React.FC<PlayerOnboardingProps> = ({
   const [formError, setFormError] = useState('');
   const [createdPlayerName, setCreatedPlayerName] = useState('');
 
-  // Find existing state
-  const [query, setQuery] = useState('');
-  const [players, setPlayers] = useState<Array<{ id: string; name: string; isRegistered: boolean; statsVisibility: string }>>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
+  // Sign in form state
+  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [loginStatus, setLoginStatus] = useState<FormStatus>('idle');
+  const [loginError, setLoginError] = useState('');
 
   // Reset state when view changes
   useEffect(() => {
@@ -47,39 +48,19 @@ export const PlayerOnboarding: React.FC<PlayerOnboardingProps> = ({
       setFormConfirmPassword('');
       setFormStatus('idle');
       setFormError('');
-      setQuery('');
-      setPlayers([]);
+
+      setLoginIdentifier('');
+      setLoginPassword('');
+      setLoginStatus('idle');
+      setLoginError('');
       setShowPassword(false);
+      setShowLoginPassword(false);
     }
   }, [view]);
 
-  // Search players when in find view
-  useEffect(() => {
-    if (view !== 'find' || !isOpen) return;
-
-    let isMounted = true;
-    const loadPlayers = async () => {
-      setSearchLoading(true);
-      try {
-        const list = await searchPlayersList(query);
-        if (isMounted) setPlayers(list);
-      } catch (err) {
-        console.error('Failed to search players:', err);
-      } finally {
-        if (isMounted) setSearchLoading(false);
-      }
-    };
-
-    const timer = setTimeout(() => loadPlayers(), 250);
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, [view, query, isOpen]);
-
   if (!isOpen) return null;
 
-  // Client-side validation
+  // Client-side validation for Create Profile
   const validateForm = (): string | null => {
     const trimmedName = formName.trim();
     if (!trimmedName) return 'Please enter your full name.';
@@ -160,12 +141,82 @@ export const PlayerOnboarding: React.FC<PlayerOnboardingProps> = ({
       // Auto-select the new player after a brief success display
       setTimeout(() => {
         onSelectPlayer(newUser.id, newUser.name);
-      }, 1800);
+      }, 1500);
     } catch (err: any) {
       console.error('Registration API failure detail:', err);
       setFormStatus('error');
-      const errorMsg = err?.message ? `Connection error (${err.message})` : 'Unable to connect to the backend server.';
-      setFormError(`${errorMsg} Please check that the API server is reachable.`);
+      const errorMsg = err?.message ? `Connection error (${err.message})` : 'Unable to connect to server. Please try again.';
+      setFormError(`${errorMsg}`);
+    }
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const trimmedInput = loginIdentifier.trim();
+    if (!trimmedInput) {
+      setLoginError('Please enter your username or email address.');
+      return;
+    }
+
+    if (!loginPassword) {
+      setLoginError('Please enter your password.');
+      return;
+    }
+
+    setLoginStatus('loading');
+    setLoginError('');
+
+    try {
+      const res = await fetch(buildApiUrl('/api/auth/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: trimmedInput,
+          password: loginPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setLoginStatus('error');
+        setLoginError(data.message || 'Invalid username/email or password.');
+        return;
+      }
+
+      const authenticated = data.data;
+
+      // Persist auth user session
+      localStorage.setItem(
+        'tappascore_auth_user',
+        JSON.stringify({
+          id: authenticated.id,
+          name: authenticated.name,
+          email: authenticated.email,
+          token: authenticated.token,
+        })
+      );
+
+      setLoginStatus('success');
+
+      if (onAuthLogin) {
+        onAuthLogin({
+          id: authenticated.id,
+          name: authenticated.name,
+          email: authenticated.email,
+          token: authenticated.token,
+        });
+      }
+
+      // Immediately select the user's own player profile identity
+      setTimeout(() => {
+        onSelectPlayer(authenticated.id, authenticated.name);
+      }, 1000);
+    } catch (err: any) {
+      console.error('Sign-in API failure:', err);
+      setLoginStatus('error');
+      setLoginError('Unable to connect to server. Please try again.');
     }
   };
 
@@ -205,17 +256,17 @@ export const PlayerOnboarding: React.FC<PlayerOnboardingProps> = ({
         <span className="flex-1 h-px bg-[#292929]" />
       </div>
 
-      {/* Secondary CTA: Find Existing Player */}
+      {/* Secondary CTA: Sign In */}
       <div className="text-center space-y-3">
         <p className="text-xs font-mono text-[#8A8A8A]">
           Already have a TappaScore profile?
         </p>
         <button
-          onClick={() => setView('find')}
+          onClick={() => setView('login')}
           className="w-full bg-[#171717] hover:bg-[#1F1F1F] border border-[#292929] hover:border-[#00E676]/40 text-white font-mono font-bold text-xs uppercase tracking-wider py-3 px-6 flex items-center justify-center gap-2 transition-all cursor-pointer"
         >
-          <Search className="w-4 h-4 text-[#8A8A8A]" />
-          FIND EXISTING PLAYER
+          <LogIn className="w-4 h-4 text-[#8A8A8A]" />
+          SIGN IN
         </button>
       </div>
     </div>
@@ -333,7 +384,7 @@ export const PlayerOnboarding: React.FC<PlayerOnboardingProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-[#5F5F5F] hover:text-white transition-colors"
+                className="absolute right-3 top-3 text-[#5F5F5F] hover:text-white transition-colors cursor-pointer"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -387,97 +438,144 @@ export const PlayerOnboarding: React.FC<PlayerOnboardingProps> = ({
     );
   };
 
-  // ===== FIND EXISTING PLAYER VIEW =====
-  const renderFindView = () => (
-    <div className="space-y-6">
-      {/* Back + Header */}
-      <div className="space-y-3">
-        <button
-          onClick={() => setView('main')}
-          className="flex items-center gap-1.5 text-[11px] font-mono text-[#8A8A8A] hover:text-white transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          BACK
-        </button>
-        <div className="space-y-1">
-          <div className="text-[10px] font-mono tracking-[0.25em] text-[#00E676] uppercase">
-            EXISTING PLAYER
+  // ===== SIGN IN VIEW =====
+  const renderLoginView = () => {
+    if (loginStatus === 'success') {
+      return (
+        <div className="space-y-6 text-center py-6 font-mono">
+          <div className="w-16 h-16 mx-auto bg-[#00E676]/10 border-2 border-[#00E676] rounded-full flex items-center justify-center">
+            <Check className="w-8 h-8 text-[#00E676]" />
           </div>
-          <h2 className="text-xl font-black uppercase text-white tracking-tight">
-            Find Your Profile
-          </h2>
-          <p className="text-[11px] font-mono text-[#8A8A8A]">
-            Search for your registered player profile by name.
-          </p>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-[#5F5F5F]" />
-        <input
-          type="text"
-          placeholder="Search by player name..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="w-full bg-[#171717] border border-[#292929] pl-10 pr-4 py-3 text-xs text-white placeholder-[#5F5F5F] focus:border-[#00E676] focus:outline-none font-mono"
-          autoFocus
-        />
-      </div>
-
-      {/* Results */}
-      <div className="max-h-64 overflow-y-auto space-y-2 pr-1 font-mono">
-        {searchLoading ? (
-          <div className="text-center py-8 text-xs text-[#8A8A8A] animate-pulse">
-            SEARCHING ATHLETE DATABASE...
-          </div>
-        ) : players.length === 0 ? (
-          <div className="text-center py-8 space-y-3">
-            <p className="text-xs text-[#5F5F5F]">
-              {query.trim()
-                ? `NO PLAYERS FOUND MATCHING "${query.toUpperCase()}"`
-                : 'TYPE A NAME TO SEARCH'}
+          <div className="space-y-2">
+            <div className="text-[10px] tracking-[0.25em] text-[#00E676] uppercase">
+              AUTHENTICATED
+            </div>
+            <h3 className="text-2xl font-black uppercase text-white">
+              Welcome Back
+            </h3>
+            <p className="text-xs text-[#8A8A8A]">
+              Successfully logged into your TappaScore account.
             </p>
-            {query.trim() && (
-              <button
-                onClick={() => setView('create')}
-                className="text-[10px] text-[#00E676] hover:underline font-bold cursor-pointer"
-              >
-                → CREATE A NEW PROFILE INSTEAD
-              </button>
-            )}
           </div>
-        ) : (
-          players.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => onSelectPlayer(p.id, p.name)}
-              className="w-full text-left bg-[#171717] hover:bg-[#222222] border border-[#292929] hover:border-[#00E676]/50 p-3 flex items-center justify-between transition-all group cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#0B0B0B] border border-[#292929] group-hover:border-[#00E676] flex items-center justify-center font-bold text-xs text-white shrink-0">
-                  {p.name.substring(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-white group-hover:text-[#00E676] transition-colors">
-                    {p.name}
-                  </div>
-                  <div className="text-[10px] text-[#8A8A8A] flex items-center gap-2">
-                    {p.isRegistered && <span>VERIFIED</span>}
-                    <span className="uppercase text-[#5F5F5F]">STATS: {p.statsVisibility}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-[#00E676] opacity-0 group-hover:opacity-100 transition-opacity">
-                <span>SELECT</span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
-            </button>
-          ))
+          <div className="flex items-center justify-center gap-2 text-[10px] text-[#5F5F5F] animate-pulse">
+            <span className="w-1.5 h-1.5 bg-[#00E676] rounded-full" />
+            LOADING DASHBOARD...
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6 font-mono">
+        {/* Back + Header */}
+        <div className="space-y-3">
+          <button
+            onClick={() => setView('main')}
+            className="flex items-center gap-1.5 text-[11px] text-[#8A8A8A] hover:text-white transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            BACK
+          </button>
+          <div className="space-y-1">
+            <div className="text-[10px] tracking-[0.25em] text-[#00E676] uppercase">
+              EXISTING USER
+            </div>
+            <h2 className="text-xl font-black uppercase text-white tracking-tight">
+              SIGN IN TO TAPPASCORE
+            </h2>
+            <p className="text-[11px] text-[#8A8A8A]">
+              Enter your username or email and password to log in.
+            </p>
+          </div>
+        </div>
+
+        {/* Error Banner */}
+        {loginError && (
+          <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/30 p-3">
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+            <span className="text-xs text-red-300">{loginError}</span>
+          </div>
         )}
+
+        {/* Login Form */}
+        <form onSubmit={handleSignIn} className="space-y-4">
+          {/* Username or Email */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-[#8A8A8A] uppercase tracking-wider">
+              Username or Email <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Enter your username or email"
+              value={loginIdentifier}
+              onChange={(e) => { setLoginIdentifier(e.target.value); setLoginError(''); }}
+              className="w-full bg-[#171717] border border-[#292929] px-4 py-3 text-sm text-white placeholder-[#5F5F5F] focus:border-[#00E676] focus:outline-none"
+              autoFocus
+              disabled={loginStatus === 'loading'}
+            />
+          </div>
+
+          {/* Password */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-[#8A8A8A] uppercase tracking-wider">
+              Password <span className="text-red-400">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type={showLoginPassword ? 'text' : 'password'}
+                placeholder="Enter your password"
+                value={loginPassword}
+                onChange={(e) => { setLoginPassword(e.target.value); setLoginError(''); }}
+                className="w-full bg-[#171717] border border-[#292929] px-4 py-3 pr-10 text-sm text-white placeholder-[#5F5F5F] focus:border-[#00E676] focus:outline-none"
+                disabled={loginStatus === 'loading'}
+              />
+              <button
+                type="button"
+                onClick={() => setShowLoginPassword(!showLoginPassword)}
+                className="absolute right-3 top-3 text-[#5F5F5F] hover:text-white transition-colors cursor-pointer"
+                tabIndex={-1}
+              >
+                {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loginStatus === 'loading'}
+            className={`w-full font-black text-sm uppercase tracking-wider py-4 px-6 flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              loginStatus === 'loading'
+                ? 'bg-[#292929] text-[#5F5F5F] cursor-not-allowed'
+                : 'bg-[#00E676] hover:bg-[#00c865] text-black'
+            }`}
+          >
+            {loginStatus === 'loading' ? (
+              <>
+                <span className="w-4 h-4 border-2 border-[#5F5F5F] border-t-transparent rounded-full animate-spin" />
+                SIGNING IN...
+              </>
+            ) : (
+              <>
+                <LogIn className="w-4 h-4" />
+                SIGN IN
+              </>
+            )}
+          </button>
+        </form>
+
+        <p className="text-[10px] text-[#5F5F5F] text-center">
+          Need a new account?{' '}
+          <button
+            onClick={() => setView('create')}
+            className="text-[#00E676] hover:underline cursor-pointer"
+          >
+            Create Player Profile
+          </button>
+        </p>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-md text-[#F5F5F0]">
@@ -494,7 +592,7 @@ export const PlayerOnboarding: React.FC<PlayerOnboardingProps> = ({
 
         {view === 'main' && renderMainView()}
         {view === 'create' && renderCreateView()}
-        {view === 'find' && renderFindView()}
+        {view === 'login' && renderLoginView()}
 
         {/* Footer */}
         <div className="pt-4 mt-6 border-t border-[#292929] text-[10px] font-mono text-[#5F5F5F] text-center">
@@ -504,3 +602,4 @@ export const PlayerOnboarding: React.FC<PlayerOnboardingProps> = ({
     </div>
   );
 };
+

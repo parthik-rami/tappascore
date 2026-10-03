@@ -48,6 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Trophy },
+    { id: 'watch-live', label: 'Live Score', icon: Radio },
     { id: 'create-match', label: 'New Match', icon: PlusCircle },
     ...(activeMatch && activeMatch.status === 'live'
       ? [{ id: 'live-scoring', label: 'Live Scoring', icon: Radio, highlight: true }]
@@ -56,6 +57,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'player-stats', label: 'Stats', icon: Flame },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
 
   const displayName = selectedPlayer?.name || user?.name || (user?.email ? user.email.split('@')[0] : null);
 
@@ -96,13 +98,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <button
                     key={item.id}
                     onClick={() => onNavigate(item.id)}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm font-bold uppercase transition-colors cursor-pointer ${
-                      isActive
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm font-bold uppercase transition-colors cursor-pointer ${isActive
                         ? 'bg-[#171717] text-[#00E676] border-b-2 border-[#00E676]'
                         : isHighlight
-                        ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                        : 'text-[#8A8A8A] hover:text-[#F5F5F0] hover:bg-[#111111]'
-                    }`}
+                          ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          : 'text-[#8A8A8A] hover:text-[#F5F5F0] hover:bg-[#111111]'
+                      }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
                     <span>{item.label}</span>
@@ -217,9 +218,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              className={`flex flex-col items-center gap-1 px-3 py-1 rounded-sm text-[10px] font-bold uppercase transition-colors cursor-pointer ${
-                isActive ? 'text-[#00E676]' : 'text-[#8A8A8A]'
-              }`}
+              className={`flex flex-col items-center gap-1 px-3 py-1 rounded-sm text-[10px] font-bold uppercase transition-colors cursor-pointer ${isActive ? 'text-[#00E676]' : 'text-[#8A8A8A]'
+                }`}
             >
               <Icon className="w-4 h-4" />
               <span>{item.label}</span>
@@ -229,9 +229,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         {user && (
           <button
             onClick={() => onNavigate('profile')}
-            className={`flex flex-col items-center gap-1 px-3 py-1 rounded-sm text-[10px] font-bold uppercase transition-colors cursor-pointer ${
-              currentRoute === 'profile' ? 'text-[#00E676]' : 'text-[#8A8A8A]'
-            }`}
+            className={`flex flex-col items-center gap-1 px-3 py-1 rounded-sm text-[10px] font-bold uppercase transition-colors cursor-pointer ${currentRoute === 'profile' ? 'text-[#00E676]' : 'text-[#8A8A8A]'
+              }`}
           >
             <User className="w-4 h-4" />
             <span>Profile</span>
