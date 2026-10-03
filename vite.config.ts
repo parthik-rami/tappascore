@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['icons/favicon.png', 'icons/tappascore-apple-touch.png', 'icons/tappascore-192.png', 'icons/tappascore-512.png', 'icons/tappascore-maskable.png'],
       manifest: {
         name: 'TappaScore',
@@ -41,6 +41,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         // CRITICAL SERVICE WORKER SAFETY RULES:
         // Do NOT cache or intercept API, Socket.IO, or backend traffic
         navigateFallbackDenylist: [/^\/api\//, /^\/socket.io\//],
