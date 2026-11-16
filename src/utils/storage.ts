@@ -35,13 +35,19 @@ function getAuthToken(): string | null {
   }
 }
 
-/**
- * Background async helper to sync match to MongoDB
- */
-async function syncMatchToMongo(match: Match): Promise<void> {
-  const token = getAuthToken();
+// Coalescing sequential queue for MongoDB match synchronization
+let isSyncing = false;
+let pendingMatchSync: Match | null = null;
+
+async function processSyncQueue(): Promise<void> {
+  if (isSyncing || !pendingMatchSync) return;
+
+  isSyncing = true;
+  const matchToSync = pendingMatchSync;
+  pendingMatchSync = null;
 
   try {
+    const token = getAuthToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -52,11 +58,25 @@ async function syncMatchToMongo(match: Match): Promise<void> {
     await fetch(buildApiUrl('/api/matches/sync'), {
       method: 'POST',
       headers,
-      body: JSON.stringify({ match }),
+      body: JSON.stringify({ match: matchToSync }),
     });
   } catch (err) {
     console.warn('MongoDB match sync deferred (offline cache kept in localStorage):', err);
+  } finally {
+    isSyncing = false;
+    // If another update occurred while this request was in flight, process latest immediately
+    if (pendingMatchSync) {
+      processSyncQueue();
+    }
   }
+}
+
+/**
+ * Background async helper to sync match to MongoDB with sequential queuing
+ */
+export async function syncMatchToMongo(match: Match): Promise<void> {
+  pendingMatchSync = match;
+  processSyncQueue();
 }
 
 /**
@@ -143,6 +163,12 @@ export async function migrateLocalHistoryToMongo(token?: string): Promise<Match[
 export function saveCurrentMatch(match: Match): void {
   try {
     match.updatedAt = new Date().toISOString();
+    match.version = (match.version || 0) + 1;
+    if (!match.numericMatchId) {
+      match.numericMatchId =
+        match.id.replace(/\D/g, '').slice(-8) ||
+        Math.floor(10000000 + Math.random() * 90000000).toString();
+    }
     localStorage.setItem(CURRENT_MATCH_KEY, JSON.stringify(match));
     // Also sync into history list & MongoDB
     saveMatchToHistory(match);
@@ -181,6 +207,11 @@ export function clearCurrentMatch(): void {
  */
 export function saveMatchToHistory(match: Match): void {
   try {
+    if (!match.numericMatchId) {
+      match.numericMatchId =
+        match.id.replace(/\D/g, '').slice(-8) ||
+        Math.floor(10000000 + Math.random() * 90000000).toString();
+    }
     const history = loadMatchHistory();
     const existingIndex = history.findIndex((m) => m.id === match.id);
     if (existingIndex >= 0) {

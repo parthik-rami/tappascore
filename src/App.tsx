@@ -36,6 +36,7 @@ export const App: React.FC = () => {
   const [currentRoute, setCurrentRoute] = useState<string>('dashboard');
   const [publicLiveMatchId, setPublicLiveMatchId] = useState<string | null>(null);
   const [activeMatch, setActiveMatch] = useState<Match | null>(null);
+  const [repeatSourceMatch, setRepeatSourceMatch] = useState<Match | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [settings, setSettingsState] = useState<MatchSettings>(DEFAULT_SETTINGS);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -87,7 +88,7 @@ export const App: React.FC = () => {
       const pathname = window.location.pathname;
 
       if (hash && hash.startsWith('#live-')) {
-        const id = hash.replace('#live-', '');
+        const id = hash.replace('#live-', '').split('?')[0].split('/')[0].trim();
         if (id) {
           setPublicLiveMatchId(id);
           return;
@@ -209,12 +210,21 @@ export const App: React.FC = () => {
   };
 
   // Start new match
+  // Handler for starting a new match (including repeat flow)
   const handleStartMatch = (match: Match) => {
     setActiveMatch(match);
     saveCurrentMatch(match);
     setMatches(loadMatchHistory());
     setCurrentRoute('live-scoring');
     showToast(`Match "${match.name}" started! Play bold! 🏏`, 'success');
+    // Clear repeat source after starting to avoid stale state
+    setRepeatSourceMatch(null);
+  };
+
+  // Handler when user selects a previous match to repeat
+  const handleRepeatMatch = (match: Match) => {
+    setRepeatSourceMatch(match);
+    setCurrentRoute('create-match');
   };
 
   // Update match in state & localStorage/MongoDB
@@ -397,6 +407,8 @@ export const App: React.FC = () => {
           <CreateMatch
             onStartMatch={handleStartMatch}
             onCancel={() => setCurrentRoute('dashboard')}
+            previousMatches={matches}
+            initialRepeatMatch={repeatSourceMatch}
           />
         )}
 
@@ -447,6 +459,7 @@ export const App: React.FC = () => {
             onResumeMatch={handleResumeMatch}
             onDeleteMatch={handleDeleteMatch}
             onNavigate={(route) => setCurrentRoute(route)}
+            onRepeatMatch={handleRepeatMatch}
           />
         )}
 

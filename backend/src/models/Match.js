@@ -63,6 +63,10 @@ const matchSchema = new mongoose.Schema(
       type: Array,
       default: [],
     },
+    version: {
+      type: Number,
+      default: 1,
+    },
   },
   {
     timestamps: true,

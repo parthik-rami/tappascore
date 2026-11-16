@@ -1,22 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Match, MatchType, Player } from '../types/cricket';
 import { EditPlayerModal } from '../components/EditPlayerModal';
-import {
-  Trash2,
-  Play,
-  Edit3
-} from 'lucide-react';
+import { RepeatMatchModal } from '../components/RepeatMatchModal';
+import { loadMatchHistory } from '../utils/storage';
+import { Trash2, Play, Edit3, RotateCcw } from 'lucide-react';
 
 interface CreateMatchProps {
   onStartMatch: (match: Match) => void;
   onCancel: () => void;
+  previousMatches?: Match[];
+  initialRepeatMatch?: Match | null;
 }
 
-export const CreateMatch: React.FC<CreateMatchProps> = ({ onStartMatch, onCancel }) => {
+export const CreateMatch: React.FC<CreateMatchProps> = ({
+  onStartMatch,
+  onCancel,
+  previousMatches,
+  initialRepeatMatch,
+}) => {
   const [matchName, setMatchName] = useState('Sunday Morning League');
   const [matchType, setMatchType] = useState<MatchType>('T10');
   const [overs, setOvers] = useState<number>(10);
   const [customOvers, setCustomOvers] = useState<string>('12');
+
+  // Repeat Previous Match state
+  const [isRepeatModalOpen, setIsRepeatModalOpen] = useState(false);
+  const [repeatedFromMatch, setRepeatedFromMatch] = useState<Match | null>(initialRepeatMatch || null);
+
+  // Available previous matches from props or storage
+  const availableMatches =
+    previousMatches && previousMatches.length > 0 ? previousMatches : loadMatchHistory();
 
   // Editing player state
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
@@ -53,6 +66,105 @@ export const CreateMatch: React.FC<CreateMatchProps> = ({ onStartMatch, onCancel
 
   // Error validation message
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Handler to select and prefill from a previous match
+  const handleSelectPreviousMatch = (selectedMatch: Match) => {
+    setMatchName(`${selectedMatch.name} (Rematch)`);
+    setMatchType(
+      selectedMatch.matchType ||
+        (selectedMatch.overs === 10
+          ? 'T10'
+          : selectedMatch.overs === 20
+          ? 'T20'
+          : selectedMatch.overs === 5
+          ? 'T5'
+          : 'Custom')
+    );
+    setOvers(selectedMatch.overs || 10);
+    if (selectedMatch.matchType === 'Custom') {
+      setCustomOvers(String(selectedMatch.overs || 12));
+    }
+
+    setTeamAName(selectedMatch.teamA?.name || 'Team A');
+    setTeamBName(selectedMatch.teamB?.name || 'Team B');
+
+    // Deep clone players preserving existing player IDs, names, jersey numbers and captaincy
+    const clonedA: Player[] = (selectedMatch.teamA?.players || []).map((p, idx) => ({
+      id: p.id || `pa-${Date.now()}-${idx + 1}`,
+      name: p.name,
+      jerseyNumber: p.jerseyNumber,
+      isCaptain: !!p.isCaptain,
+    }));
+
+    const clonedB: Player[] = (selectedMatch.teamB?.players || []).map((p, idx) => ({
+      id: p.id || `pb-${Date.now()}-${idx + 1}`,
+      name: p.name,
+      jerseyNumber: p.jerseyNumber,
+      isCaptain: !!p.isCaptain,
+    }));
+
+    setTeamAPlayers(
+      clonedA.length > 0
+        ? clonedA
+        : [
+            { id: 'pa-1', name: 'Player 1', isCaptain: true },
+            { id: 'pa-2', name: 'Player 2' },
+          ]
+    );
+
+    setTeamBPlayers(
+      clonedB.length > 0
+        ? clonedB
+        : [
+            { id: 'pb-1', name: 'Player 1', isCaptain: true },
+            { id: 'pb-2', name: 'Player 2' },
+          ]
+    );
+
+    // Reset toss
+    setTossWinner('A');
+    setTossDecision('bat');
+    setRepeatedFromMatch(selectedMatch);
+    setIsRepeatModalOpen(false);
+    setErrorMessage(null);
+  };
+
+  // Reset rosters back to initial defaults
+  const handleResetToDefault = () => {
+    setMatchName('Sunday Morning League');
+    setMatchType('T10');
+    setOvers(10);
+    setCustomOvers('12');
+    setTeamAName('Royal Challengers');
+    setTeamAPlayers([
+      { id: 'pa-1', name: 'Virat', jerseyNumber: '18', isCaptain: true },
+      { id: 'pa-2', name: 'Faf', jerseyNumber: '13' },
+      { id: 'pa-3', name: 'Maxwell', jerseyNumber: '32' },
+      { id: 'pa-4', name: 'Green', jerseyNumber: '42' },
+      { id: 'pa-5', name: 'Patidar', jerseyNumber: '97' },
+      { id: 'pa-6', name: 'Siraj', jerseyNumber: '73' },
+    ]);
+    setTeamBName('Super Kings');
+    setTeamBPlayers([
+      { id: 'pb-1', name: 'Ruturaj', jerseyNumber: '31', isCaptain: true },
+      { id: 'pb-2', name: 'Rachin', jerseyNumber: '8' },
+      { id: 'pb-3', name: 'Dube', jerseyNumber: '25' },
+      { id: 'pb-4', name: 'Dhoni', jerseyNumber: '7' },
+      { id: 'pb-5', name: 'Jadeja', jerseyNumber: '8' },
+      { id: 'pb-6', name: 'Pathirana', jerseyNumber: '99' },
+    ]);
+    setTossWinner('A');
+    setTossDecision('bat');
+    setRepeatedFromMatch(null);
+    setErrorMessage(null);
+  };
+
+  // Prefill if an initial repeat match was passed
+  useEffect(() => {
+    if (initialRepeatMatch) {
+      handleSelectPreviousMatch(initialRepeatMatch);
+    }
+  }, [initialRepeatMatch]);
 
   // Overs preset click
   const handleOversPreset = (val: number, type: MatchType) => {
@@ -165,7 +277,7 @@ export const CreateMatch: React.FC<CreateMatchProps> = ({ onStartMatch, onCancel
         bowlingTeamId = teamAId;
       } else {
         battingTeamId = teamAId;
-        bowlingTeamId = teamAId;
+        bowlingTeamId = teamBId;
       }
     }
 
@@ -173,10 +285,13 @@ export const CreateMatch: React.FC<CreateMatchProps> = ({ onStartMatch, onCancel
     const bowlingTeamPlayers = bowlingTeamId === teamAId ? teamAPlayers : teamBPlayers;
 
     const now = new Date().toISOString();
+    const numericMatchId = Math.floor(10000000 + Math.random() * 90000000).toString();
 
     const newMatch: Match = {
       id: 'match-' + Date.now(),
+      numericMatchId,
       name: matchName.trim(),
+      version: 1,
       overs: effectiveOvers,
       matchType,
       teamA: {
@@ -230,13 +345,44 @@ export const CreateMatch: React.FC<CreateMatchProps> = ({ onStartMatch, onCancel
           <p className="text-xs text-[#8A8A8A] mt-1">Configure team rosters, overs format, toss, and launch official scoring.</p>
         </div>
 
-        <button
-          onClick={onCancel}
-          className="text-xs font-mono tracking-wider uppercase text-[#8A8A8A] hover:text-white transition-colors"
-        >
-          [ Cancel Setup ]
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+          <button
+            type="button"
+            onClick={() => setIsRepeatModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2.5 bg-[#171717] hover:bg-[#222222] text-[#00E676] border border-[#00E676]/40 hover:border-[#00E676] text-xs font-mono uppercase font-bold transition-all shadow-sm cursor-pointer"
+            title="Reuse team names and players from a previous match"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Repeat Previous Match</span>
+          </button>
+
+          <button
+            onClick={onCancel}
+            className="text-xs font-mono tracking-wider uppercase text-[#8A8A8A] hover:text-white transition-colors cursor-pointer"
+          >
+            [ Cancel Setup ]
+          </button>
+        </div>
       </div>
+
+      {/* Repeated Match Informational Banner */}
+      {repeatedFromMatch && (
+        <div className="bg-[#00E676]/10 border border-[#00E676]/30 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-mono rounded-none">
+          <div className="flex items-center gap-2.5 text-[#00E676]">
+            <RotateCcw className="w-4 h-4 shrink-0 text-[#00E676]" />
+            <span>
+              Reusing rosters from <strong>{repeatedFromMatch.name}</strong> ({teamAName} vs {teamBName}). You can edit players or team names below before starting.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleResetToDefault}
+            className="text-[11px] underline text-[#8A8A8A] hover:text-white shrink-0 uppercase cursor-pointer"
+          >
+            [ Reset to Default Teams ]
+          </button>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono rounded-lg">
@@ -592,6 +738,13 @@ export const CreateMatch: React.FC<CreateMatchProps> = ({ onStartMatch, onCancel
           onClose={() => setEditingPlayer(null)}
         />
       )}
+
+      <RepeatMatchModal
+        isOpen={isRepeatModalOpen}
+        onClose={() => setIsRepeatModalOpen(false)}
+        matches={availableMatches}
+        onSelectMatch={handleSelectPreviousMatch}
+      />
     </div>
   );
 };

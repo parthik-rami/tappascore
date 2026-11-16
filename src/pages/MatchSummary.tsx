@@ -18,14 +18,15 @@ import {
   Shield,
   Radio,
   Edit3,
+  RotateCcw,
 } from 'lucide-react';
-
 
 interface MatchSummaryProps {
   match: Match;
   onUpdateMatch: (updatedMatch: Match) => void;
   onBack: () => void;
   onResumeMatch?: () => void;
+  onRepeatMatch?: (match: Match) => void;
   onShowToast: (message: string, type?: 'success' | 'warning' | 'info' | 'error') => void;
 }
 
@@ -34,6 +35,7 @@ export const MatchSummary: React.FC<MatchSummaryProps> = ({
   onUpdateMatch,
   onBack,
   onResumeMatch,
+  onRepeatMatch,
   onShowToast,
 }) => {
   const [selectedInningsIndex, setSelectedInningsIndex] = useState<0 | 1>(0);
@@ -146,6 +148,17 @@ export const MatchSummary: React.FC<MatchSummaryProps> = ({
             >
               <Radio className="w-4 h-4" />
               <span>Resume Live Scoring</span>
+            </button>
+          )}
+
+          {onRepeatMatch && (
+            <button
+              onClick={() => onRepeatMatch(match)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#00E676]/15 hover:bg-[#00E676]/25 text-[#00E676] border border-[#00E676]/40 transition-all cursor-pointer"
+              title="Start a new match reusing these teams and player rosters"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Repeat Match</span>
             </button>
           )}
 

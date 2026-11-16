@@ -4,7 +4,8 @@ import { calculateInningsScore } from '../utils/scoring';
 import { ConfirmModal } from '../components/ConfirmModal';
 import {
   Trash2,
-  Search
+  Search,
+  RotateCcw,
 } from 'lucide-react';
 
 interface MatchHistoryProps {
@@ -13,6 +14,7 @@ interface MatchHistoryProps {
   onResumeMatch: (match: Match) => void;
   onDeleteMatch: (matchId: string) => void;
   onNavigate: (route: string) => void;
+  onRepeatMatch?: (match: Match) => void;
 }
 
 export const MatchHistory: React.FC<MatchHistoryProps> = ({
@@ -21,6 +23,7 @@ export const MatchHistory: React.FC<MatchHistoryProps> = ({
   onResumeMatch,
   onDeleteMatch,
   onNavigate,
+  onRepeatMatch,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'wins' | 'live'>('all');
@@ -176,6 +179,17 @@ export const MatchHistory: React.FC<MatchHistoryProps> = ({
                       className="flex-1 md:flex-none px-4 py-2 bg-[#171717] hover:bg-[#292929] text-white border border-[#292929] text-xs font-mono uppercase font-bold"
                     >
                       View Scorecard
+                    </button>
+                  )}
+
+                  {onRepeatMatch && (
+                    <button
+                      onClick={() => onRepeatMatch(m)}
+                      className="px-3 py-2 bg-[#171717] hover:bg-[#222222] text-[#00E676] border border-[#00E676]/30 hover:border-[#00E676] text-xs font-mono uppercase font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Start a new match reusing these teams and players"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Repeat</span>
                     </button>
                   )}
 

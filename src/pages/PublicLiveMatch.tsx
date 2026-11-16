@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Match } from '../types/cricket';
 import { ScoreCard } from '../components/ScoreCard';
 import { OverTracker } from '../components/OverTracker';
@@ -21,97 +21,155 @@ export const PublicLiveMatch: React.FC<PublicLiveMatchProps> = ({ numericMatchId
   const [isLiveConnected, setIsLiveConnected] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  const fetchLiveScore = async () => {
+  const matchRef = useRef<Match | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const connectedRef = useRef(false);
+
+  // Sync ref
+  useEffect(() => {
+    matchRef.current = match;
+  }, [match]);
+
+  const cleanMatchId = (numericMatchId || '').trim();
+
+  const fetchLiveScore = useCallback(async (silent = false) => {
+    if (!cleanMatchId) return;
     try {
-      setLoading(true);
-      const res = await fetch(buildApiUrl(`/api/matches/public/${numericMatchId}`));
+      if (!silent) setLoading(true);
+      const res = await fetch(buildApiUrl(`/api/matches/public/${encodeURIComponent(cleanMatchId)}`));
       const data = await res.json();
 
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Match not found.');
       }
 
-      setMatch(data.data);
+      const freshMatch: Match = data.data;
+      setMatch((prev) => {
+        if (
+          prev &&
+          prev.version !== undefined &&
+          freshMatch.version !== undefined &&
+          freshMatch.version < prev.version
+        ) {
+          return prev;
+        }
+        return freshMatch;
+      });
       setLastRefreshed(new Date());
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to load live match score.');
+      if (!silent || !matchRef.current) {
+        setError(err.message || 'Failed to load live match score.');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, [cleanMatchId]);
 
   useEffect(() => {
-    fetchLiveScore();
+    if (!cleanMatchId) return;
 
-    // Setup Socket.IO real-time connection
-    let socket: Socket | null = null;
+    // 1. Initial REST API fetch
+    fetchLiveScore(false);
+
+    // 2. Setup Socket.IO connection with robust options
+    const socketOptions = {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 10000,
+    };
+
+    let socket: Socket;
     try {
-      socket = SOCKET_URL ? io(SOCKET_URL) : io();
+      socket = SOCKET_URL ? io(SOCKET_URL, socketOptions) : io(socketOptions);
+      socketRef.current = socket;
 
       socket.on('connect', () => {
         setIsLiveConnected(true);
-        socket?.emit('join_match', numericMatchId);
-        // Re-fetch latest from MongoDB on reconnect to prevent missing balls
-        fetchLiveScore();
+        connectedRef.current = true;
+
+        // Join room by the URL param ID
+        socket.emit('join_match', cleanMatchId);
+
+        // Also join by full matchId and numericMatchId if available from previous load
+        if (matchRef.current?.id) {
+          socket.emit('join_match', matchRef.current.id);
+        }
+        if (matchRef.current?.numericMatchId) {
+          socket.emit('join_match', matchRef.current.numericMatchId);
+        }
+
+        // Re-fetch latest from MongoDB upon reconnect to ensure no balls were missed
+        fetchLiveScore(true);
       });
 
       socket.on('disconnect', () => {
         setIsLiveConnected(false);
+        connectedRef.current = false;
+      });
+
+      socket.on('connect_error', () => {
+        setIsLiveConnected(false);
+        connectedRef.current = false;
       });
 
       socket.on('match_updated', (updatedMatch: Match) => {
+        if (!updatedMatch) return;
         setMatch((prevMatch) => {
-          if (JSON.stringify(prevMatch) === JSON.stringify(updatedMatch)) {
+          if (
+            prevMatch &&
+            prevMatch.version !== undefined &&
+            updatedMatch.version !== undefined &&
+            updatedMatch.version < prevMatch.version
+          ) {
             return prevMatch;
           }
           return updatedMatch;
         });
         setLastRefreshed(new Date());
+        setError(null);
+
+        // Ensure newly discovered rooms are joined
+        if (updatedMatch.id) socket.emit('join_match', updatedMatch.id);
+        if (updatedMatch.numericMatchId) socket.emit('join_match', updatedMatch.numericMatchId);
       });
     } catch (e) {
       console.warn('Socket connection error:', e);
     }
 
-    // Silent fallback polling mechanism (every 3 seconds)
-    // Runs only if match is not completed
-    const pollInterval = setInterval(async () => {
-      // Check if current match state is already completed before fetching
-      setMatch((prevMatch) => {
-        if (prevMatch?.status === 'completed') {
-          clearInterval(pollInterval);
-          return prevMatch;
-        }
-        return prevMatch;
-      });
+    // 3. Adaptive fallback polling:
+    // If Socket.IO is disconnected, poll every 3 seconds as a fallback.
+    // If Socket.IO is connected, poll every 15 seconds as a safety net.
+    // When match is completed, polling automatically ceases.
+    let pollCount = 0;
+    const pollInterval = setInterval(() => {
+      if (matchRef.current?.status === 'completed') {
+        clearInterval(pollInterval);
+        return;
+      }
 
-      try {
-        const res = await fetch(buildApiUrl(`/api/matches/public/${numericMatchId}`));
-        const data = await res.json();
+      pollCount++;
+      const isConnected = connectedRef.current;
 
-        if (res.ok && data.success && data.data) {
-          const freshMatch: Match = data.data;
-          setMatch((prevMatch) => {
-            if (JSON.stringify(prevMatch) === JSON.stringify(freshMatch)) {
-              return prevMatch;
-            }
-            setLastRefreshed(new Date());
-            return freshMatch;
-          });
-        }
-      } catch (err) {
-        // Silent error handling for background polling
+      // Poll every 3 seconds if disconnected, or every 15s (5 ticks * 3s) if connected
+      if (!isConnected || pollCount % 5 === 0) {
+        fetchLiveScore(true);
       }
     }, 3000);
 
     return () => {
       if (socket) {
-        socket.emit('leave_match', numericMatchId);
+        socket.emit('leave_match', cleanMatchId);
+        if (matchRef.current?.id) socket.emit('leave_match', matchRef.current.id);
+        if (matchRef.current?.numericMatchId) socket.emit('leave_match', matchRef.current.numericMatchId);
         socket.disconnect();
       }
       clearInterval(pollInterval);
     };
-  }, [numericMatchId]);
+  }, [cleanMatchId, fetchLiveScore]);
 
   if (loading && !match) {
     return (
@@ -186,13 +244,21 @@ export const PublicLiveMatch: React.FC<PublicLiveMatchProps> = ({ numericMatchId
         </div>
 
         <div className="flex items-center gap-2">
-          {isLiveConnected && (
+          {match.status === 'completed' ? (
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+              MATCH COMPLETED
+            </span>
+          ) : isLiveConnected ? (
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse">
               <Radio className="w-3 h-3 text-emerald-400" /> LIVE STREAM
             </span>
+          ) : (
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" /> SYNCING
+            </span>
           )}
           <button
-            onClick={fetchLiveScore}
+            onClick={() => fetchLiveScore(false)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-stadium-850 text-slate-200 border border-slate-700 hover:bg-stadium-800 transition-all"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />

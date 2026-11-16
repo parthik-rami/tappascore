@@ -29,17 +29,25 @@ const broadcastMatchUpdate = (match) => {
     playerOfTheMatchId: match.playerOfTheMatchId,
     review: match.review,
     auditLog: match.auditLog,
+    version: match.version || 1,
     createdAt: match.createdAt,
     updatedAt: match.updatedAt,
   };
 
-  // Broadcast to matchId room and numericMatchId room
+  // Broadcast to all relevant room identifiers (matchId, numericMatchId, and numeric suffix)
+  const rooms = new Set();
   if (match.matchId) {
-    io.to(String(match.matchId)).emit('match_updated', formattedMatch);
+    rooms.add(String(match.matchId));
+    const numSuffix = String(match.matchId).replace(/\D/g, '').slice(-8);
+    if (numSuffix) rooms.add(numSuffix);
   }
   if (match.numericMatchId) {
-    io.to(String(match.numericMatchId)).emit('match_updated', formattedMatch);
+    rooms.add(String(match.numericMatchId));
   }
+
+  rooms.forEach((room) => {
+    io.to(room).emit('match_updated', formattedMatch);
+  });
 };
 
 /**
@@ -54,9 +62,22 @@ export const getPublicLiveMatch = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Match ID is required.' });
     }
 
-    const match = await MatchModel.findOne({
-      $or: [{ numericMatchId: matchId }, { matchId }],
+    const cleanId = String(matchId).trim();
+    let match = await MatchModel.findOne({
+      $or: [{ numericMatchId: cleanId }, { matchId: cleanId }],
     });
+
+    // If not found and cleanId is numeric (e.g. 8-digit share code), try regex suffix match on matchId
+    if (!match && /^\d+$/.test(cleanId)) {
+      match = await MatchModel.findOne({
+        matchId: { $regex: cleanId + '$' },
+      });
+      // Auto-backfill numericMatchId on the match in MongoDB so subsequent lookups are direct
+      if (match && !match.numericMatchId) {
+        match.numericMatchId = cleanId;
+        await match.save().catch(() => {});
+      }
+    }
 
     if (!match) {
       return res.status(404).json({ success: false, message: 'Match not found.' });
@@ -87,6 +108,7 @@ export const getPublicLiveMatch = async (req, res) => {
       playerOfTheMatchId: match.playerOfTheMatchId,
       review: publicReview,
       auditLog: match.auditLog,
+      version: match.version || 1,
       createdAt: match.createdAt,
       updatedAt: match.updatedAt,
     };
@@ -157,15 +179,36 @@ export const syncMatch = async (req, res) => {
         }
       }
 
-      // 3. Stale sync protection: Ignore incoming sync if existing match in DB has a strictly newer updatedAt timestamp
+      // 3. Stale sync protection:
+      // If version is present on both, reject strictly older versions
       if (
-        match.updatedAt &&
-        existingMatch.updatedAt &&
-        new Date(existingMatch.updatedAt).getTime() > new Date(match.updatedAt).getTime()
+        match.version !== undefined &&
+        existingMatch.version !== undefined &&
+        match.version < existingMatch.version
       ) {
         return res.status(200).json({
           success: true,
-          message: 'Ignored stale match update.',
+          message: 'Ignored stale match update (older version).',
+          data: existingMatch,
+        });
+      }
+
+      // If version is absent, check total deliveries count to prevent regression
+      const getDeliveryCount = (m) => (m.innings || []).reduce((acc, inn) => acc + (inn.deliveries?.length || 0), 0);
+      const existingBalls = getDeliveryCount(existingMatch);
+      const incomingBalls = getDeliveryCount(match);
+      
+      // If client timestamp is significantly older (> 30s) AND incoming delivery count is lower, reject
+      if (
+        !match.version &&
+        match.updatedAt &&
+        existingMatch.updatedAt &&
+        incomingBalls < existingBalls &&
+        new Date(existingMatch.updatedAt).getTime() - new Date(match.updatedAt).getTime() > 30000
+      ) {
+        return res.status(200).json({
+          success: true,
+          message: 'Ignored stale match update (lower ball count & older timestamp).',
           data: existingMatch,
         });
       }
@@ -173,7 +216,13 @@ export const syncMatch = async (req, res) => {
       const previousStatus = existingMatch.status;
 
       // Update fields
-      if (match.numericMatchId) existingMatch.numericMatchId = match.numericMatchId;
+      const computedNumericId =
+        match.numericMatchId ||
+        existingMatch.numericMatchId ||
+        (existingMatch.matchId ? String(existingMatch.matchId).replace(/\D/g, '').slice(-8) : String(Date.now()).slice(-8));
+
+      existingMatch.numericMatchId = computedNumericId;
+      existingMatch.version = Math.max(Number(match.version) || 1, (Number(existingMatch.version) || 0) + 1);
       if (match.updatedAt) existingMatch.updatedAt = match.updatedAt;
       existingMatch.name = match.name;
       existingMatch.teamA = match.teamA;
@@ -213,10 +262,15 @@ export const syncMatch = async (req, res) => {
       });
     } else {
       // Create new match
+      const fallbackNumericId =
+        match.numericMatchId ||
+        (match.id ? String(match.id).replace(/\D/g, '').slice(-8) : String(Date.now()).slice(-8));
+
       const newMatch = new MatchModel({
         userId: userId || undefined,
         matchId: match.id || `match-${Date.now()}`,
-        numericMatchId: match.numericMatchId,
+        numericMatchId: fallbackNumericId,
+        version: match.version || 1,
         name: match.name,
         teamA: match.teamA,
         teamB: match.teamB,
@@ -416,6 +470,7 @@ export const getUserMatches = async (req, res) => {
       playerOfTheMatchId: m.playerOfTheMatchId,
       review: m.review,
       auditLog: m.auditLog,
+      version: m.version || 1,
       createdAt: m.createdAt,
       updatedAt: m.updatedAt,
     }));

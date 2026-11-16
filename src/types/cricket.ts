@@ -98,6 +98,7 @@ export interface Match {
   playerOfTheMatchId?: string;
   review?: MatchReview;
   auditLog: AuditEntry[];
+  version?: number;
   createdAt: string;
   updatedAt: string;
 }

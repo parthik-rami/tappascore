@@ -64,17 +64,34 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Join a match room by ID (either 8-digit numericMatchId or matchId)
+  // Join match room(s) by ID (either 8-digit numericMatchId or matchId or array)
   socket.on('join_match', (matchId) => {
-    if (matchId) {
-      socket.join(String(matchId));
-    }
+    if (!matchId) return;
+    const ids = Array.isArray(matchId) ? matchId : [matchId];
+    ids.forEach((id) => {
+      const strId = String(id).trim();
+      if (!strId) return;
+      socket.join(strId);
+      // If id is match-<digits>, also join the numeric suffix room
+      const numSuffix = strId.replace(/\D/g, '').slice(-8);
+      if (numSuffix && numSuffix !== strId) {
+        socket.join(numSuffix);
+      }
+    });
   });
 
   socket.on('leave_match', (matchId) => {
-    if (matchId) {
-      socket.leave(String(matchId));
-    }
+    if (!matchId) return;
+    const ids = Array.isArray(matchId) ? matchId : [matchId];
+    ids.forEach((id) => {
+      const strId = String(id).trim();
+      if (!strId) return;
+      socket.leave(strId);
+      const numSuffix = strId.replace(/\D/g, '').slice(-8);
+      if (numSuffix && numSuffix !== strId) {
+        socket.leave(numSuffix);
+      }
+    });
   });
 });
 
