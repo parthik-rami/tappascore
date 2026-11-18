@@ -8,7 +8,6 @@ interface NavbarProps {
   onNavigate: (route: string) => void;
   activeMatch: Match | null;
   user?: { id?: string; name?: string; email: string; token?: string } | null;
-  onOpenSelectPlayer?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -16,7 +15,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   activeMatch,
   user,
-  onOpenSelectPlayer,
 }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Trophy },
@@ -80,17 +78,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               })}
             </nav>
 
-            {/* Right: Notification Controls and Player Selector */}
+            {/* Right: Notification Controls */}
             <div className="flex items-center gap-3 font-mono text-xs">
               {user && <NotificationBell user={user} />}
-              {/* Simple player selector button – always shows SELECT PLAYER */}
-              <button
-                onClick={onOpenSelectPlayer}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-[#00E676] text-black font-bold text-xs cursor-pointer hover:bg-emerald-400 transition-colors"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>SELECT PLAYER</span>
-              </button>
             </div>
           </div>
         </div>
