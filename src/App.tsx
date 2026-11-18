@@ -8,7 +8,7 @@ import {
   loadSettings,
   saveCurrentMatch,
   saveSettings,
-  migrateLocalHistoryToMongo,
+  // migrateLocalHistoryToMongo, // Unused in public version
   DEFAULT_SETTINGS,
 } from './utils/storage';
 import { soundManager } from './utils/sound';
@@ -39,11 +39,7 @@ export const App: React.FC = () => {
   const [repeatSourceMatch, setRepeatSourceMatch] = useState<Match | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [settings, setSettingsState] = useState<MatchSettings>(DEFAULT_SETTINGS);
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [authenticatedUser, setAuthenticatedUser] = useState<{ id?: string; name?: string; email: string; token?: string } | null>(() => {
-    const saved = localStorage.getItem('tappascore_auth_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const authenticatedUser = null; // public app has no auth
 
 
   // User-scoped player identity — never falls back to a hardcoded player name
@@ -72,10 +68,6 @@ export const App: React.FC = () => {
     } catch { }
   };
 
-  // Called when a brand-new player registers from the onboarding form
-  const handleAuthLoginFromOnboarding = (user: { id: string; name: string; email: string; token: string }) => {
-    setAuthenticatedUser(user);
-  };
 
   // Check URL hash/pathname for public live match or owner panel (/owner, /owner/login)
   useEffect(() => {
@@ -135,28 +127,13 @@ export const App: React.FC = () => {
     setSettingsState(storedSettings);
     soundManager.setEnabled(storedSettings.soundEnabled);
 
-    // If user is already logged in, trigger migration/sync with token
-    if (authenticatedUser && authenticatedUser.token) {
-      migrateLocalHistoryToMongo(authenticatedUser.token).then((updatedList) => {
-        setMatches(updatedList);
-      });
-    }
+    // Auth block removed – public app does not require token migration.
+
   }, []);
 
-  const handleLogout = () => {
-    try {
-      const userId = authenticatedUser?.id || 'guest';
-      localStorage.removeItem('tappascore_auth_user');
-      localStorage.removeItem(`tappascore:selectedPlayer:${userId}`);
-      localStorage.removeItem('tappascore_selected_player_id');
-    } catch (e) {}
 
-    setAuthenticatedUser(null);
-    setSelectedPlayer(null);
-    setShowPlayerSelect(false);
-    setCurrentRoute('dashboard');
-    showToast('Logged out successfully.', 'info');
-  };
+
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Toast notification helper
   const showToast = (
@@ -170,7 +147,6 @@ export const App: React.FC = () => {
   const dismissToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
-
   // Start new match
   // Handler for starting a new match (including repeat flow)
   const handleStartMatch = (match: Match) => {
@@ -267,9 +243,8 @@ export const App: React.FC = () => {
         onNavigate={(route) => setCurrentRoute(route)}
         activeMatch={activeMatch}
         user={authenticatedUser}
-        selectedPlayer={selectedPlayer}
         onOpenSelectPlayer={() => setShowPlayerSelect(true)}
-        onLogout={handleLogout}
+
       />
 
       {/* PWA Installation Prompt */}
@@ -282,7 +257,6 @@ export const App: React.FC = () => {
           <PlayerOnboarding
             isOpen={true}
             onSelectPlayer={handleSelectPlayer}
-            onAuthLogin={handleAuthLoginFromOnboarding}
             onClose={() => setShowPlayerSelect(false)}
             canClose={!!selectedPlayer}
           />
@@ -295,7 +269,7 @@ export const App: React.FC = () => {
             onNavigate={(route) => setCurrentRoute(route)}
             onSelectMatch={handleSelectMatch}
             user={authenticatedUser}
-            selectedPlayer={selectedPlayer}
+  
             onOpenSelectPlayer={() => setShowPlayerSelect(true)}
           />
         )}
