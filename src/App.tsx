@@ -29,7 +29,7 @@ import { PublicLiveMatch } from './pages/PublicLiveMatch';
 // import { OwnerPanel } from './pages/OwnerPanel';
 import { NetworkStatusBanner } from './components/NetworkStatusBanner';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
-import { PlayerOnboarding } from './components/PlayerOnboarding';
+// import { PlayerOnboarding } from './components/PlayerOnboarding';
 import { WatchLive, extractMatchIdFromInput } from './pages/WatchLive';
 
 export const App: React.FC = () => {
@@ -39,34 +39,10 @@ export const App: React.FC = () => {
   const [repeatSourceMatch, setRepeatSourceMatch] = useState<Match | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [settings, setSettingsState] = useState<MatchSettings>(DEFAULT_SETTINGS);
-  const authenticatedUser = null; // public app has no auth
 
 
-  // User-scoped player identity — never falls back to a hardcoded player name
-  const [selectedPlayer, setSelectedPlayer] = useState<{ id: string; name: string } | null>(() => {
-    try {
-      const authSaved = localStorage.getItem('tappascore_auth_user');
-      const userId = authSaved ? JSON.parse(authSaved)?.id || 'guest' : 'guest';
-      const key = `tappascore:selectedPlayer:${userId}`;
-      const saved = localStorage.getItem(key);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [showPlayerSelect, setShowPlayerSelect] = useState<boolean>(false);
 
-  const handleSelectPlayer = (playerId: string, playerName: string) => {
-    const player = { id: playerId, name: playerName };
-    setSelectedPlayer(player);
-    setShowPlayerSelect(false);
-    try {
-      const authSaved = localStorage.getItem('tappascore_auth_user');
-      const userId = authSaved ? JSON.parse(authSaved)?.id || 'guest' : 'guest';
-      const key = `tappascore:selectedPlayer:${userId}`;
-      localStorage.setItem(key, JSON.stringify(player));
-    } catch { }
-  };
+
 
 
   // Check URL hash/pathname for public live match or owner panel (/owner, /owner/login)
@@ -242,9 +218,7 @@ export const App: React.FC = () => {
         currentRoute={currentRoute}
         onNavigate={(route) => setCurrentRoute(route)}
         activeMatch={activeMatch}
-        user={authenticatedUser}
-        onOpenSelectPlayer={() => setShowPlayerSelect(true)}
-
+        user={null}
       />
 
       {/* PWA Installation Prompt */}
@@ -253,14 +227,7 @@ export const App: React.FC = () => {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10">
         {/* Player onboarding — shown when no player is chosen yet or switch requested */}
-        {(showPlayerSelect || (!selectedPlayer && currentRoute !== 'owner-panel' && currentRoute !== 'owner-login')) && (
-          <PlayerOnboarding
-            isOpen={true}
-            onSelectPlayer={handleSelectPlayer}
-            onClose={() => setShowPlayerSelect(false)}
-            canClose={!!selectedPlayer}
-          />
-        )}
+        { }
 
         {currentRoute === 'dashboard' && (
           <Dashboard
@@ -268,9 +235,6 @@ export const App: React.FC = () => {
             activeMatch={activeMatch}
             onNavigate={(route) => setCurrentRoute(route)}
             onSelectMatch={handleSelectMatch}
-            user={authenticatedUser}
-  
-            onOpenSelectPlayer={() => setShowPlayerSelect(true)}
           />
         )}
 
