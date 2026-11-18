@@ -5,7 +5,6 @@ import {
   History,
   Settings,
   Radio,
-  Flame,
   User,
   LogOut,
   UserCheck,
@@ -151,18 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                       {/* Dropdown Actions */}
                       <div className="space-y-1">
-                        {user && (
-                          <button
-                            onClick={() => {
-                              setProfileMenuOpen(false);
-                              onNavigate('profile');
-                            }}
-                            className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-[#F5F5F0] hover:bg-[#171717] hover:text-[#00E676] transition-colors cursor-pointer"
-                          >
-                            <User className="w-4 h-4 text-[#8A8A8A]" />
-                            <span>VIEW MY PROFILE</span>
-                          </button>
-                        )}
+
 
                         {onOpenSelectPlayer && (
                           <button

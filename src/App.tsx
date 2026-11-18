@@ -24,7 +24,7 @@ import { MatchHistory } from './pages/MatchHistory';
 import { Settings } from './pages/Settings';
 // import { Profile } from './pages/Profile';
 import { PublicLiveMatch } from './pages/PublicLiveMatch';
-import { PlayerStats } from './pages/PlayerStats';
+
 // import { OwnerLogin } from './pages/OwnerLogin';
 // import { OwnerPanel } from './pages/OwnerPanel';
 import { NetworkStatusBanner } from './components/NetworkStatusBanner';
@@ -45,10 +45,6 @@ export const App: React.FC = () => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [, setOwnerUser] = useState<{ id: string; name: string; email: string; token: string } | null>(() => {
-    const saved = localStorage.getItem('tappascore_owner_user');
-    return saved ? JSON.parse(saved) : null;
-  });
 
   // User-scoped player identity — never falls back to a hardcoded player name
   const [selectedPlayer, setSelectedPlayer] = useState<{ id: string; name: string } | null>(() => {
@@ -114,41 +110,7 @@ export const App: React.FC = () => {
       setPublicLiveMatchId(null);
 
 
-      // Check Owner Panel routes: /owner or #owner or #/owner
-      if (pathname === '/owner' || hash === '#owner' || hash === '#/owner') {
-        const saved = localStorage.getItem('tappascore_owner_user');
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (parsed && parsed.token && parsed.role === 'owner') {
-              setCurrentRoute('owner-panel');
-              return;
-            }
-          } catch (e) { }
-        }
-        if (pathname !== '/owner/login') {
-          window.history.replaceState(null, '', '/owner/login');
-        }
-        setCurrentRoute('owner-login');
-        return;
-      }
 
-      // Check Owner Login routes: /owner/login or #owner-login or #/owner/login
-      if (pathname === '/owner/login' || hash === '#owner-login' || hash === '#/owner/login') {
-        const saved = localStorage.getItem('tappascore_owner_user');
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (parsed && parsed.token && parsed.role === 'owner') {
-              window.history.replaceState(null, '', '/owner');
-              setCurrentRoute('owner-panel');
-              return;
-            }
-          } catch (e) { }
-        }
-        setCurrentRoute('owner-login');
-        return;
-      }
     };
 
     checkRoute();
@@ -409,14 +371,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {currentRoute === 'player-stats' && (
-          <PlayerStats
-            authenticatedUser={authenticatedUser}
-            selectedPlayer={selectedPlayer}
-            onOpenSelectPlayer={() => setShowPlayerSelect(true)}
-            onShowToast={showToast}
-          />
-        )}
+
 
         {currentRoute === 'settings' && (
           <Settings
@@ -427,12 +382,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {currentRoute === 'profile' && authenticatedUser && (
-          <Profile
-            user={authenticatedUser}
-            onLogout={handleLogout}
-          />
-        )}
+
       </main>
 
       {/* Global Footer (Public App Experience) */}
