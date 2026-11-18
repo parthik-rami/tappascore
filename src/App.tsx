@@ -22,11 +22,11 @@ import { BallHistory } from './pages/BallHistory';
 import { MatchSummary } from './pages/MatchSummary';
 import { MatchHistory } from './pages/MatchHistory';
 import { Settings } from './pages/Settings';
-import { Profile } from './pages/Profile';
+// import { Profile } from './pages/Profile';
 import { PublicLiveMatch } from './pages/PublicLiveMatch';
 import { PlayerStats } from './pages/PlayerStats';
-import { OwnerLogin } from './pages/OwnerLogin';
-import { OwnerPanel } from './pages/OwnerPanel';
+// import { OwnerLogin } from './pages/OwnerLogin';
+// import { OwnerPanel } from './pages/OwnerPanel';
 import { NetworkStatusBanner } from './components/NetworkStatusBanner';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { PlayerOnboarding } from './components/PlayerOnboarding';
@@ -291,62 +291,8 @@ export const App: React.FC = () => {
     );
   }
 
-  // Render Standalone Owner Login route
-  if (currentRoute === 'owner-login') {
-    return (
-      <div className="min-h-screen bg-stadium-950 text-slate-100 font-sans">
-        <OwnerLogin
-          onSuccess={(data) => {
-            setOwnerUser(data);
-            window.history.pushState(null, '', '/owner');
-            setCurrentRoute('owner-panel');
-          }}
-          onBackToApp={() => {
-            window.history.pushState(null, '', '/');
-            setCurrentRoute('dashboard');
-          }}
-          onShowToast={showToast}
-        />
-        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-      </div>
-    );
-  }
+  // Owner login and panel routes have been removed – the app is now public without authentication.
 
-  // Render Standalone Owner Panel route (Protected)
-  if (currentRoute === 'owner-panel') {
-    const saved = localStorage.getItem('tappascore_owner_user');
-    let isValidOwner = false;
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.token && parsed.role === 'owner') {
-          isValidOwner = true;
-        }
-      } catch (e) { }
-    }
-
-    if (!isValidOwner) {
-      window.history.replaceState(null, '', '/owner/login');
-      setCurrentRoute('owner-login');
-      return null;
-    }
-
-    return (
-      <div className="min-h-screen bg-[#070B12] text-slate-100 font-sans">
-        <OwnerPanel
-          onLogout={() => {
-            localStorage.removeItem('tappascore_owner_user');
-            setOwnerUser(null);
-            window.history.pushState(null, '', '/owner/login');
-            setCurrentRoute('owner-login');
-          }}
-          onShowToast={showToast}
-          onNavigateApp={(route) => setCurrentRoute(route)}
-        />
-        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-stadium-950 text-slate-100 flex flex-col font-sans overflow-x-hidden">

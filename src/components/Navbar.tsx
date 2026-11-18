@@ -54,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       ? [{ id: 'live-scoring', label: 'Live Scoring', icon: Radio, highlight: true }]
       : []),
     { id: 'match-history', label: 'Archive', icon: History },
-    { id: 'player-stats', label: 'Stats', icon: Flame },
+    // Stats removed – public version has no player statistics
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
